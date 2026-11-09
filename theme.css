@@ -1,0 +1,260 @@
+:root {
+  color-scheme: dark;
+  --bg: #0b0d10;
+  --card: #20252c;
+  --card2: #20252c;
+  --line: #424a53;
+  --txt: #f1f3f5;
+  --dim: #b4bbc3;
+  --acc: #be2330;
+  --lime: #be2330;
+  --warn: #d5a6ab;
+}
+html {
+  scroll-padding-bottom: 120px;
+}
+body {
+  background: #0b0d10;
+  overflow-wrap: anywhere;
+}
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+button,
+a,
+input,
+select,
+textarea {
+  touch-action: manipulation;
+}
+button,
+.filebtn,
+.go-home {
+  min-height: 44px;
+}
+button {
+  color: #fff;
+}
+.btn,
+.qb.sel,
+.row.done .ok,
+.toast {
+  color: #fff;
+}
+input:focus,
+textarea:focus,
+select:focus,
+button:focus-visible,
+a:focus-visible,
+[role="button"]:focus-visible {
+  outline: 3px solid #d5a6ab;
+  outline-offset: 3px;
+}
+.wrap {
+  padding-top: max(18px, env(safe-area-inset-top));
+  padding-bottom: calc(170px + env(safe-area-inset-bottom));
+}
+.go-home {
+  margin: 8px 12px;
+}
+.wrap > .go-home {
+  display: none;
+}
+.row input {
+  font-size: 16px;
+  min-height: 46px;
+}
+.row .eff {
+  font-size: 12px;
+  min-height: 46px;
+}
+.row .eff.e2,
+.row .eff.e4,
+.row .eff.e5 {
+  color: #e2bcc0;
+  border-color: #916068;
+}
+.row .ok {
+  min-height: 46px;
+}
+.ex-head {
+  min-height: 64px;
+}
+.ex-head .meta,
+.hint,
+.muted {
+  color: #b4bbc3;
+}
+.ex-head h3 {
+  line-height: 1.2;
+}
+.ex.open {
+  border-left: 3px solid #be2330;
+}
+.ex.open .row:not(.done):not(.hd) {
+  border-left: 2px solid #740d19;
+  padding-left: 3px;
+}
+#restBar {
+  padding-bottom: calc(10px + env(safe-area-inset-bottom));
+  flex-wrap: wrap;
+}
+#restBar .rt {
+  font-size: 32px;
+}
+.notice ol {
+  padding-left: 8px;
+}
+#importStatus {
+  color: #e2bcc0;
+  white-space: pre-wrap;
+}
+pre {
+  max-width: 100%;
+}
+.session button {
+  margin-top: 10px;
+}
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: space-around;
+  background: #20252c;
+  border-top: 1px solid #424a53;
+  padding: 8px 4px calc(8px + env(safe-area-inset-bottom));
+  z-index: 5;
+}
+.bottom-nav a {
+  padding: 10px 8px;
+  color: #f1f3f5;
+  text-decoration: none;
+  font: 600 12px system-ui;
+}
+.bottom-nav a[aria-current="page"] {
+  background: #740d19;
+  border-radius: 6px;
+}
+body[data-kind] .bottom-nav {
+  display: none;
+}
+@media (max-width: 360px) {
+  .wrap {
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+  .ex-body {
+    padding-left: 6px;
+    padding-right: 6px;
+  }
+  .row {
+    gap: 3px;
+  }
+  .row .iw {
+    width: 53px;
+  }
+  .row .ir {
+    width: 43px;
+  }
+  .row .n {
+    width: 28px;
+  }
+  .row .ok {
+    width: 42px;
+  }
+  .row .eff {
+    font-size: 11px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+  }
+}
+fieldset {
+  border: 1px solid #424a53;
+  margin: 14px 0;
+  padding: 10px;
+  min-width: 0;
+}
+legend {
+  font-weight: 700;
+}
+.edit-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 12px 0;
+}
+.edit-row > span {
+  width: 100%;
+}
+.edit-row label {
+  width: 28%;
+  font-size: 12px;
+}
+.edit-row input[type="text"] {
+  width: 100%;
+  background: #20252c;
+  color: #fff;
+  border: 1px solid #aaa;
+  min-height: 44px;
+}
+fieldset textarea {
+  width: 100%;
+  background: #20252c;
+  color: white;
+  min-height: 60px;
+}
+.notice {
+  border: 1px solid #424a53;
+  background: #20252c;
+  padding: 12px;
+}
+.notice summary {
+  cursor: pointer;
+  font: 600 13px system-ui;
+  color: #e2bcc0;
+  min-height: 24px;
+}
+.notice[open] summary {
+  margin-bottom: 12px;
+}
+.notice b,
+.cal b,
+.tech b,
+.last b,
+.block-title {
+  color: #e2bcc0;
+}
+.block-title {
+  font-size: 18px;
+}
+.ex-head .status {
+  white-space: nowrap;
+  min-width: 40px;
+  text-align: right;
+}
+.ex-head > div:first-child {
+  min-width: 0;
+  padding-right: 8px;
+}
+#saveStatus {
+  color: #b4bbc3;
+  font: 12px/1.5 system-ui;
+  margin-bottom: 12px;
+}
+.go-home {
+  color: #f1f3f5;
+}
+a {
+  color: #e2bcc0;
+}
+.row:not(.hd):not(.done):not(:has(~ .row.done)) {
+  scroll-margin-bottom: 160px;
+}
