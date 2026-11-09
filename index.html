@@ -1,3 +1,251 @@
-<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#181c23"><link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="icons/icon-192.png"><title>Nigga Guts Rage Training</title><style>
-:root{color-scheme:dark;--lime:#b51e2c;--bg:#0b0e12;--panel:#191e26;--line:#414b58}*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 100% 0%,#25303b 0%,#0b0e12 45%);color:#f2f2f2;font:14px system-ui,sans-serif}.wrap{max-width:620px;margin:auto;padding:22px 16px 80px}h1{font-size:44px;line-height:.95;letter-spacing:-2px;margin:16px 0;color:#f2f2f2;text-shadow:2px 2px #73101b}h2{font-size:21px;margin:30px 0 12px}p{line-height:1.5;color:#aaa}.eyebrow{color:#aaa;letter-spacing:2px;font-size:11px;font-weight:700}.card{display:block;background:linear-gradient(155deg,#252c35,#161b22);border:1px solid var(--line);border-radius:13px;margin:10px 0;padding:19px;color:white;text-decoration:none}.card strong{display:block;font-size:21px;margin:5px 0}.card small{color:var(--lime);font-weight:700}.card p{margin:5px 0 0;font-size:12px}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.metric{background:var(--panel);padding:13px 8px;border-radius:10px;text-align:center}.metric b{display:block;color:var(--lime);font-size:24px}.metric span{font-size:10px;color:#aaa}button,.filebtn{display:inline-block;background:var(--lime);color:#ffffff;border:0;border-radius:7px;padding:12px 15px;font-weight:800;cursor:pointer;font-size:12px;margin:5px 5px 5px 0}button.secondary,.filebtn{background:#252d37;color:white;border:1px solid #444}.filebtn input{display:none}.session{background:var(--panel);border:1px solid var(--line);border-radius:10px;margin:9px 0;padding:13px}.session summary{cursor:pointer;font-weight:700}.session small{display:block;color:#aaa;margin-top:5px}.session pre{white-space:pre-wrap;overflow-wrap:anywhere;font:11px/1.5 monospace;color:#ddd;margin-top:14px}.muted{font-size:12px;color:#999}.notice{padding:12px;border-left:3px solid var(--lime);background:#191e26;margin:16px 0}.empty{padding:20px;background:var(--panel);border-radius:10px;color:#999}#install{display:none;width:100%}#importStatus{color:var(--lime);font-size:12px}a{color:var(--lime)}
-</style></head><body><main class="wrap"><div class="eyebrow">GUTS RAGE / IRON & BLOOD</div><h1>GUTS RAGE<br>TRAINING</h1><p>Тренировки, подходы, таймеры, история и резервное копирование. Данные остаются на этом устройстве.</p><button id="install">УСТАНОВИТЬ ПРИЛОЖЕНИЕ</button><div class="grid"><div class="metric"><b id="count">0</b><span>ТРЕНИРОВОК</span></div><div class="metric"><b id="sets">0</b><span>РАБОЧИХ ПОДХОДОВ</span></div><div class="metric"><b id="last">—</b><span>ПОСЛЕДНЯЯ</span></div></div><h2>НАЧАТЬ ТРЕНИРОВКУ</h2><a class="card" href="push.html"><small>ПОНЕДЕЛЬНИК</small><strong>ГРУДЬ + ТРИЦЕПС</strong><p>Жимы гантелей · сведение · трицепс · без плеч</p></a><a class="card" href="pull.html"><small>СРЕДА / ЧЕТВЕРГ</small><strong>СПИНА + БИЦЕПС + ПРЕСС</strong><p>Вертикальная и горизонтальная тяга · бицепс · пресс</p></a><a class="card" href="legs.html"><small>ПЯТНИЦА / СУББОТА</small><strong>НОГИ + ДЕЛЬТЫ</strong><p>Присед → румынская тяга → тренажёры → дельты</p></a><h2>ПРОГРЕСС</h2><a class="card" href="analytics.html"><small>СТАТИСТИКА</small><strong>ГРАФИКИ ПРОГРЕССИИ →</strong><p>Рабочие веса · объём · история каждого упражнения</p></a><h2>ИСТОРИЯ</h2><div id="history" class="empty">Пока нет завершённых тренировок. После нажатия «Завершить тренировку» результат появится здесь.</div><h2>ДАННЫЕ И РЕЗЕРВНАЯ КОПИЯ</h2><div class="notice"><b>Локальное хранение.</b><p>Приложение работает офлайн после первой загрузки. Удаление данных сайта или приложения может стереть журнал. Экспортируй резервную копию регулярно и храни её вне приложения.</p></div><button id="export">СКАЧАТЬ РЕЗЕРВНУЮ КОПИЮ JSON</button><label class="filebtn">ВОССТАНОВИТЬ ИЗ JSON<input id="import" type="file" accept=".json,application/json"></label><div id="importStatus"></div><p class="muted">Импорт объединяет записи по ключам и не удаляет текущую историю. Перед импортом экспортируй текущую копию. Исторические результаты из исходной памятки используются как ориентиры в карточках, а не как выдуманные завершённые сессии.</p><p class="muted">Для установки PWA размести всю папку на HTTPS-сайте, например GitHub Pages. Открытие index.html как файла не позволяет установить полноценную PWA.</p></main><script src="pwa.js"></script><script src="home.js"></script></body></html>
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width,initial-scale=1,viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#20252C" />
+    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="icon" href="icons/icon-192.png" />
+    <title>Nigga Guts Rage Training</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --lime: #b51e2c;
+        --bg: #0b0e12;
+        --panel: #191e26;
+        --line: #414b58;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: radial-gradient(
+          ellipse at 100% 0%,
+          #25303b 0%,
+          #0b0e12 45%
+        );
+        color: #f2f2f2;
+        font:
+          14px system-ui,
+          sans-serif;
+      }
+      .wrap {
+        max-width: 620px;
+        margin: auto;
+        padding: 22px 16px 80px;
+      }
+      h1 {
+        font-size: 44px;
+        line-height: 0.95;
+        letter-spacing: -2px;
+        margin: 16px 0;
+        color: #f2f2f2;
+        text-shadow: 2px 2px #73101b;
+      }
+      h2 {
+        font-size: 21px;
+        margin: 30px 0 12px;
+      }
+      p {
+        line-height: 1.5;
+        color: #aaa;
+      }
+      .eyebrow {
+        color: #aaa;
+        letter-spacing: 2px;
+        font-size: 11px;
+        font-weight: 700;
+      }
+      .card {
+        display: block;
+        background: linear-gradient(155deg, #252c35, #161b22);
+        border: 1px solid var(--line);
+        border-radius: 13px;
+        margin: 10px 0;
+        padding: 19px;
+        color: white;
+        text-decoration: none;
+      }
+      .card strong {
+        display: block;
+        font-size: 21px;
+        margin: 5px 0;
+      }
+      .card small {
+        color: var(--lime);
+        font-weight: 700;
+      }
+      .card p {
+        margin: 5px 0 0;
+        font-size: 12px;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+      }
+      .metric {
+        background: var(--panel);
+        padding: 13px 8px;
+        border-radius: 10px;
+        text-align: center;
+      }
+      .metric b {
+        display: block;
+        color: var(--lime);
+        font-size: 24px;
+      }
+      .metric span {
+        font-size: 10px;
+        color: #aaa;
+      }
+      button,
+      .filebtn {
+        display: inline-block;
+        background: var(--lime);
+        color: #ffffff;
+        border: 0;
+        border-radius: 7px;
+        padding: 12px 15px;
+        font-weight: 800;
+        cursor: pointer;
+        font-size: 12px;
+        margin: 5px 5px 5px 0;
+      }
+      button.secondary,
+      .filebtn {
+        background: #252d37;
+        color: white;
+        border: 1px solid #444;
+      }
+      .filebtn input {
+        display: none;
+      }
+      .session {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        margin: 9px 0;
+        padding: 13px;
+      }
+      .session summary {
+        cursor: pointer;
+        font-weight: 700;
+      }
+      .session small {
+        display: block;
+        color: #aaa;
+        margin-top: 5px;
+      }
+      .session pre {
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+        font: 11px/1.5 monospace;
+        color: #ddd;
+        margin-top: 14px;
+      }
+      .muted {
+        font-size: 12px;
+        color: #999;
+      }
+      .notice {
+        padding: 12px;
+        border-left: 3px solid var(--lime);
+        background: #191e26;
+        margin: 16px 0;
+      }
+      .empty {
+        padding: 20px;
+        background: var(--panel);
+        border-radius: 10px;
+        color: #999;
+      }
+      #install {
+        display: none;
+        width: 100%;
+      }
+      #importStatus {
+        color: var(--lime);
+        font-size: 12px;
+      }
+      a {
+        color: var(--lime);
+      }
+    </style>
+    <link rel="stylesheet" href="theme.css" />
+  </head>
+  <body>
+    <main class="wrap">
+      <div class="eyebrow">GUTS RAGE / IRON & BLOOD</div>
+      <h1>GUTS RAGE<br />TRAINING</h1>
+      <p>
+        Тренировки, подходы, таймеры, история и резервное копирование. Данные
+        остаются на этом устройстве.
+      </p>
+      <button id="install">УСТАНОВИТЬ ПРИЛОЖЕНИЕ</button>
+      <div class="grid">
+        <div class="metric"><b id="count">0</b><span>ТРЕНИРОВОК</span></div>
+        <div class="metric">
+          <b id="sets">0</b><span>РАБОЧИХ ПОДХОДОВ</span>
+        </div>
+        <div class="metric"><b id="last">—</b><span>ПОСЛЕДНЯЯ</span></div>
+      </div>
+      <h2>НАЧАТЬ ТРЕНИРОВКУ</h2>
+      <a class="card" href="push.html"
+        ><small>ПОНЕДЕЛЬНИК</small><strong>ГРУДЬ + ТРИЦЕПС</strong>
+        <p>Жимы гантелей · сведение · трицепс · без плеч</p></a
+      ><a class="card" href="pull.html"
+        ><small>СРЕДА / ЧЕТВЕРГ</small><strong>СПИНА + БИЦЕПС + ПРЕСС</strong>
+        <p>Вертикальная и горизонтальная тяга · бицепс · пресс</p></a
+      ><a class="card" href="legs.html"
+        ><small>ПЯТНИЦА / СУББОТА</small><strong>НОГИ + ДЕЛЬТЫ</strong>
+        <p>Присед → румынская тяга → тренажёры → дельты</p></a
+      >
+      <h2>ПРОГРЕСС</h2>
+      <a class="card" href="analytics.html"
+        ><small>СТАТИСТИКА</small><strong>ГРАФИКИ ПРОГРЕССИИ →</strong>
+        <p>Рабочие веса · объём · история каждого упражнения</p></a
+      >
+      <h2>ИСТОРИЯ</h2>
+      <div id="history" class="empty">
+        Пока нет завершённых тренировок. После нажатия «Завершить тренировку»
+        результат появится здесь.
+      </div>
+      <h2>ДАННЫЕ И РЕЗЕРВНАЯ КОПИЯ</h2>
+      <div class="notice">
+        <b>Локальное хранение.</b>
+        <p>
+          Приложение работает офлайн после первой загрузки. Удаление данных
+          сайта или приложения может стереть журнал. Экспортируй резервную копию
+          регулярно и храни её вне приложения.
+        </p>
+      </div>
+      <button id="export">СКАЧАТЬ РЕЗЕРВНУЮ КОПИЮ JSON</button
+      ><label class="filebtn"
+        >ВОССТАНОВИТЬ ИЗ JSON<input
+          id="import"
+          type="file"
+          accept=".json,application/json"
+      /></label>
+      <div id="importStatus" role="status" aria-live="polite"></div>
+      <p class="muted">
+        Импорт объединяет записи по ключам и не удаляет текущую историю. Перед
+        импортом экспортируй текущую копию. Исторические результаты из исходной
+        памятки используются как ориентиры в карточках, а не как выдуманные
+        завершённые сессии.
+      </p>
+      <p class="muted">
+        Для установки PWA размести всю папку на HTTPS-сайте, например GitHub
+        Pages. Открытие index.html как файла не позволяет установить полноценную
+        PWA.
+      </p>
+    </main>
+    <script src="pwa.js"></script>
+    <script src="storage.js"></script>
+    <script src="home.js"></script>
+  </body>
+</html>
