@@ -58,3 +58,9 @@
 Исходные: `README.md`, `index.html`, `push.html`, `pull.html`, `legs.html`, `analytics.html`, `home.js`, `analytics.js`, `progression.js`, `pwa.js`, `sw.js`, `manifest.webmanifest`. PNG сохранены без изменений.
 
 Новые: `AUDIT.md`, `.gitignore`, `.github/workflows/checks.yml`, `package.json`, `package-lock.json`, `playwright.config.cjs`, `storage.js`, `workout.js`, `workout.css`, `theme.css`, `exercise-config.js`, `push-data.js`, `pull-data.js`, `legs-data.js`, `tests/core.test.cjs`, `tests/browser/app.spec.cjs`, `tests/server.cjs`.
+
+## Доставка ветки и Pull Request
+
+Ветка `fix/android-pwa-production` отправлена в origin; основной коммит `6363959`. Native Git чтение и push работают. Попытка `gh pr create --base main --head fix/android-pwa-production` не создала PR: запрос `https://api.github.com/graphql` вернул `Forbidden`. Причина на уровне доступа к API не установлена; доступ через Git не доказывает разрешение API. Никакие токены не извлекались и не менялись.
+
+Создать PR через веб-интерфейс: https://github.com/krovm98-alt/Nigga-Guts-Rage-Training/compare/main...fix/android-pwa-production?expand=1 . Это ссылка создания, не существующий PR. Ветка не объединена с main. Подготовленное описание: проблема сохранности данных, прогрессии и офлайн-обновлений; 9 unit + 9 E2E, ограничения Android и localStorage приведены выше.
