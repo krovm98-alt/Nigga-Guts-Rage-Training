@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="theme-color" content="#181c23"><link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="icons/icon-192.png"><meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>СПИНА + БИЦЕПС + ПРЕСС · GUTS RAGE</title>
+
+<style>
+:root{--bg:#0b0e12;--card:#191e26;--card2:#242b35;--line:#414b58;--txt:#f0f0f0;--dim:#888;--acc:#c62b39;--warn:#e58d69}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{background:radial-gradient(ellipse at 80% 0%,#202a34 0%,#0b0e12 48%);color:var(--txt);font-family:ui-monospace,Consolas,monospace;font-size:14px}
+h1,h2,h3,.bebas{font-family:Impact,'Arial Narrow',sans-serif;letter-spacing:.03em}
+.wrap{max-width:520px;margin:0 auto;padding:14px 12px 160px}
+header{display:flex;justify-content:space-between;align-items:baseline;border-bottom:3px solid var(--acc);padding-bottom:8px;margin-bottom:6px}
+header h1{font-size:24px}
+#totalTimer{font-size:20px;font-weight:700}
+.pbar{height:6px;background:var(--line);border-radius:3px;overflow:hidden;margin-bottom:14px}
+#pfill{height:100%;background:var(--acc);width:0%;transition:width .4s}
+
+.notice{border:2px solid var(--acc);border-radius:8px;padding:12px;margin:12px 0;font-size:12.5px;line-height:1.6}
+.notice b{color:var(--acc);font-family:Impact,'Arial Narrow',sans-serif;font-size:15px;letter-spacing:.05em}
+.notice.warn{border-color:var(--warn)}
+.notice.warn b.t{color:var(--warn)}
+.notice ol{margin:6px 0 0 18px}
+.notice li{margin:3px 0}
+
+.block-title{font-family:Impact,'Arial Narrow',sans-serif;font-size:20px;color:var(--acc);margin:20px 0 6px;border-left:4px solid var(--acc);padding-left:10px}
+
+.ex{background:linear-gradient(160deg,#222a34,#141920);border:1px solid var(--line);border-radius:8px;margin:10px 0;overflow:hidden}
+.ex.done{border-color:var(--acc)}
+.ex.skipped{opacity:.45}
+.ex-head{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;cursor:pointer}
+.ex-head h3{font-size:20px;line-height:1}
+.ex-head .meta{font-size:11.5px;color:var(--dim);margin-top:3px}
+.ex-head .rp{font-size:11.5px;color:var(--warn);margin-top:3px;font-weight:700}
+.ex-head .status{font-family:Impact,'Arial Narrow',sans-serif;font-size:18px;color:var(--dim)}
+.ex.done .ex-head .status{color:var(--acc)}
+.ex-body{display:none;padding:0 12px 14px;border-top:1px dashed var(--line)}
+.ex.open .ex-body{display:block}
+.tech{background:var(--card2);border-radius:6px;padding:10px;margin:10px 0;font-size:12px;line-height:1.6}
+.tech b{color:var(--acc);font-family:Impact,'Arial Narrow',sans-serif;font-size:13px;letter-spacing:.05em}
+.tech .warn{color:var(--warn);font-weight:700}
+.last{border-left:3px solid var(--acc);padding:6px 10px;margin:10px 0;font-size:12px;line-height:1.55;color:#cfcfcf}
+.last b{color:var(--acc)}
+.cal{border:1px solid var(--acc);border-radius:6px;padding:10px;margin:10px 0;font-size:12px;line-height:1.55}
+.cal>b{color:var(--acc);font-family:Impact,'Arial Narrow',sans-serif;font-size:15px;letter-spacing:.05em}
+.cal .cl{display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px dotted var(--line)}
+.cal .cl:last-of-type{border-bottom:none}
+.cal .cl span:last-child{font-weight:700;color:var(--acc)}
+.cal .live{margin-top:6px;color:var(--acc);font-weight:700;min-height:1em}
+.cal .sm{color:var(--dim);font-size:11px;margin-top:4px}
+
+.alt{border:1px dashed var(--warn);border-radius:6px;padding:10px;margin:12px 0}
+.alt>b{color:var(--warn);font-family:Impact,'Arial Narrow',sans-serif;font-size:15px;letter-spacing:.05em}
+.alt .sub{font-size:11px;color:var(--dim);margin-top:6px}
+.altinfo{font-size:12px;line-height:1.55;margin-top:8px;color:#cfcfcf}
+.altinfo b{color:var(--warn)}
+.ctext{width:100%;margin:6px 0;padding:9px;background:var(--card2);border:1px solid var(--line);border-radius:6px;color:var(--txt);font-family:'IBM Plex Mono';font-size:13px}
+
+.row{display:flex;align-items:center;gap:5px;margin:7px 0}
+.row.hd{margin:4px 0 0;font-size:10px;color:var(--dim);text-align:center}
+.row .n{width:34px;text-align:center;font-family:Impact,'Arial Narrow',sans-serif;font-size:18px;color:var(--dim);flex:none}
+.row .n.wu{font-size:11px;letter-spacing:0;color:var(--warn)}
+.row .iw{width:62px;flex:none}
+.row .ir{width:48px;flex:none}
+.row input{min-width:0;padding:10px 3px;border:1px solid var(--line);border-radius:6px;background:var(--card2);color:var(--txt);font-family:'IBM Plex Mono';font-size:15px;font-weight:700;text-align:center}
+.row .eff{flex:1;min-width:0;padding:10px 2px;font-family:'IBM Plex Mono';font-size:11px;font-weight:700;background:var(--card2);color:var(--dim);border:2px solid var(--line);border-radius:6px;cursor:pointer}
+.row .eff{line-height:1.1}
+.row .eff.e1{color:var(--txt)}
+.row .eff.e2{color:#f0ff7a;border-color:#f0ff7a}
+.row .eff.e3{color:var(--acc);border-color:var(--acc)}
+.row .eff.e4{color:#ffd24a;border-color:#ffd24a}
+.row .eff.e5{color:#ffb040;border-color:#ffb040}
+.row .eff.e6{color:var(--warn);border-color:var(--warn)}
+.row .ok{width:46px;flex:none;padding:9px 0;font-family:Impact,'Arial Narrow',sans-serif;font-size:20px;background:var(--card2);color:var(--txt);border:2px solid var(--line);border-radius:6px;cursor:pointer}
+.row.done .ok{background:var(--acc);color:#0b0e12;border-color:var(--acc)}
+.row.done input{opacity:.6}
+.row.trial{border-bottom:1px dashed var(--line);padding-bottom:8px;margin-bottom:10px}
+.row .lbl{flex:1;font-size:13px}
+.row .go{width:46px;flex:none;padding:9px 0;font-family:Impact,'Arial Narrow',sans-serif;font-size:18px;background:var(--bg);color:var(--acc);border:2px solid var(--acc);border-radius:6px;cursor:pointer}
+
+.ctl{display:flex;gap:8px;margin:8px 0}
+.ctl button{flex:1;padding:9px;font-family:Impact,'Arial Narrow',sans-serif;font-size:16px;background:transparent;color:var(--txt);border:2px solid var(--line);border-radius:6px;cursor:pointer}
+.quick{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}
+.qb{padding:7px 12px;border:2px solid var(--line);border-radius:16px;background:transparent;color:var(--txt);font-size:12px;cursor:pointer}
+.qb.sel{background:var(--acc);color:#0b0e12;border-color:var(--acc);font-weight:700}
+.alt .qb.sel{background:var(--warn);border-color:var(--warn)}
+.ex textarea{width:100%;background:var(--card2);border:1px solid var(--line);border-radius:6px;color:var(--txt);font-family:'IBM Plex Mono';font-size:13px;padding:8px;min-height:44px;resize:vertical}
+
+.btn{display:block;width:100%;padding:16px;margin:10px 0;font-family:Impact,'Arial Narrow',sans-serif;font-size:24px;background:var(--acc);color:#0b0e12;border:none;border-radius:6px;cursor:pointer}
+.btn.ghost{background:transparent;color:var(--txt);border:2px solid var(--line)}
+.btn.small{font-size:16px;padding:10px}
+.btn:active{transform:scale(.98)}
+.hidden{display:none!important}
+
+#restBar{position:fixed;left:0;right:0;bottom:0;background:#101010;border-top:3px solid var(--acc);padding:10px 14px;display:none;align-items:center;gap:10px;z-index:8}
+#restBar.on{display:flex}
+#restBar .rt{font-family:Impact,'Arial Narrow',sans-serif;font-size:40px;color:var(--acc);line-height:1;min-width:84px}
+#restBar .rl{font-size:11px;color:var(--dim);flex:1}
+#restBar button{padding:9px 13px;font-family:Impact,'Arial Narrow',sans-serif;font-size:16px;background:radial-gradient(ellipse at 80% 0%,#202a34 0%,#0b0e12 48%);color:var(--txt);border:2px solid var(--line);border-radius:6px;cursor:pointer}
+
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0}
+.stat{background:var(--card2);border-radius:6px;padding:12px;text-align:center}
+.stat .v{font-family:Impact,'Arial Narrow',sans-serif;font-size:32px;color:var(--acc);line-height:1}
+.stat .l{font-size:11px;color:var(--dim);margin-top:4px}
+#reportBox{width:100%;background:var(--card2);border:1px solid var(--acc);border-radius:6px;color:var(--txt);font-family:'IBM Plex Mono';font-size:12px;padding:10px;min-height:260px;margin-top:10px}
+.toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:var(--acc);color:#0b0e12;padding:10px 22px;border-radius:20px;font-weight:700;opacity:0;pointer-events:none;transition:opacity .3s;z-index:9;text-align:center;max-width:90%}
+.toast.show{opacity:1}
+.hint{font-size:11px;color:var(--dim);margin-top:6px}
+header::before{content:"⚔";color:#b51e2c;font-size:21px;margin-right:6px}.go-home{display:inline-block;text-decoration:none;color:#c4cbd4;border:1px solid #414b58;background:#191e26;border-radius:7px;padding:9px 12px;margin:0 0 12px;font-size:12px}.go-home:hover{border-color:#b51e2c}</style>
+</head>
+<body><a href="index.html" class="go-home">← ГЛАВНАЯ · GUTS RAGE</a>
+<div class="wrap"><a href="index.html" style="display:inline-block;color:#b51e2c;margin-bottom:12px;text-decoration:none;font-size:12px">← ГЛАВНАЯ / ИСТОРИЯ</a><div style="display:flex;gap:8px;margin-bottom:12px"><a href="index.html" style="color:#b51e2c">⌂ ГЛАВНАЯ</a><span style="color:#888">· Данные сохраняются на этом устройстве</span></div>
+
+<header><h1>СПИНА + БИЦЕПС + ПРЕСС</h1><div id="totalTimer">00:00</div></header>
+<div class="pbar"><div id="pfill"></div></div>
+
+<div id="scrMain">
+
+<div class="notice warn">
+<b class="t">ФОРМАТ</b><br>
+В каждом упражнении <b style="color:var(--acc)">1 пробный подход + 3 рабочих.</b> Цель в рабочих: запас 2 повтора, «кое как» (отказ) не больше четверти подходов. Под каждым упражнением есть графа <b style="color:var(--warn)">«ЗАМЕНА УПРАЖНЕНИЯ»</b>, если станок занят или упражнение не подошло.
+</div>
+
+<div class="notice warn">
+<b class="t">ПРАВИЛО ВЕСА</b><br>
+Вес гантели — одной, вес тренажёра — по его шкале. Один вес на все три рабочих подхода. Стартовые веса из журнала, при необходимости скорректируй по пробному подходу.
+</div>
+
+<div class="notice">
+<b>КАК ПОДОБРАТЬ ВЕС</b>
+<ol>
+<li>Сделай пробный подход с весом из карточки. Он лёгкий, это замер.</li>
+<li>Оцени запас после подхода, сколько повторов ещё мог бы сделать: <b style="color:var(--acc)">легко</b> 5+, <b style="color:var(--acc)">легко-норм</b> 4, <b style="color:var(--acc)">норм</b> 3, <b style="color:var(--acc)">норм-тяжело</b> 2, <b style="color:var(--acc)">тяжело</b> 1, <b style="color:var(--acc)">кое как</b> впритык. Цель в рабочих: норм-тяжело или тяжело.</li>
+<li>Нажимай «как далось» у пробного, пока не встанет слово, потом ✓. Рабочий вес подставится в 3 подхода. Калибровка ориентировочная: сверяй с ощущениями и техникой, не принимай предложенный вес как обязательный.</li>
+<li>Выбери вес по пробному и держи его все три подхода, не наращивай от подхода к подходу. Исключение: первый рабочий вышел «кое как», тогда дальше минус один шаг.</li>
+<li>У каждого рабочего подхода тоже нажми «как далось»: без оценки подход не попадёт в разбор.</li>
+</ol>
+</div>
+
+<div class="notice">
+<b>КАК ПОЛЬЗОВАТЬСЯ ЗАМЕНОЙ</b>
+<ol>
+<li>Нажми готовую замену или впиши своё упражнение. В отчёте будет «Основное → ЗАМЕНА: новое».</li>
+<li>Отметь причину: занято, нет в зале, дискомфорт, решил Семён.</li>
+<li>Если на тренажёре вес указан на одну сторону, включи «вес на сторону (×2)». Отчёт пометит это.</li>
+<li>Нет базы по замене: впиши вес пробного. Рабочий считаю от него: легко ×1,5, норм ×1,35, тяжело ×1,2, кое как ×1,1, промежуточные посередине, округляю вниз. Если сомневаешься, бери ближайший меньший вес.</li>
+<li>Если делал замену, заполни подходы в карточке и не жми «Пропустить упражнение»: пропуск убирает подходы из отчёта.</li>
+</ol>
+</div>
+
+<div id="list"></div>
+
+<button class="btn" onclick="finish()">ЗАВЕРШИТЬ ТРЕНИРОВКУ</button>
+<button class="btn ghost small" id="resetBtn" onclick="resetAll()">СБРОСИТЬ ТРЕНИРОВКУ</button>
+</div>
+
+<div id="scrFinal" class="hidden">
+  <div class="bebas" style="font-size:54px;text-align:center;margin:16px 0">ГОТОВО</div>
+  <div class="stat-grid">
+    <div class="stat"><div class="v" id="stTime">—</div><div class="l">ВРЕМЯ</div></div>
+    <div class="stat"><div class="v" id="stSets">—</div><div class="l">РАБОЧИХ ПОДХОДОВ</div></div>
+    <div class="stat"><div class="v" id="stKK">—</div><div class="l">«КОЕ КАК» (ЦЕЛЬ: НЕ БОЛЬШЕ ЧЕТВЕРТИ)</div></div>
+    <div class="stat"><div class="v" id="stRep">—</div><div class="l">ЗАМЕН</div></div>
+  </div>
+  <button class="btn" onclick="copyReport()">КОПИРОВАТЬ ОТЧЁТ</button>
+  <div class="hint">Не скопировалось: отчёт появится ниже, зажми текст и скопируй вручную.</div>
+  <textarea id="reportBox" class="hidden" readonly></textarea>
+  <button class="btn ghost small" onclick="backToMain()">← ВЕРНУТЬСЯ К ТРЕНИРОВКЕ</button>
+</div>
+
+</div>
+
+<div id="restBar"><div class="rt" id="restT">0:00</div><div class="rl" id="restL"></div><button onclick="addRest(30)">+30</button><button onclick="stopRest()">СТОП</button></div>
+<div class="toast" id="toast">СКОПИРОВАНО</div>
+
+<script src="progression.js"></script>
+<script>
+// 1 пробный подход + 3 рабочих. cal: как далось пробное (1 легко, 2 норм, 3 тяжело, 4 кое как) -> рабочий вес.
+// alts: готовые замены. cal:'main' = те же веса, что у основного. Без cal = нет базы, вес считается от пробного по GEN.
+const GEN={1:1.5,2:1.425,3:1.35,4:1.275,5:1.2,6:1.1};
+const WHY=['занято','нет в зале','дискомфорт','решил Семён'];
+function mkRows(trial,workR,cal,n){
+  const rows=[{w:trial.w,r:trial.r,wu:true}];
+  for(let i=0;i<n;i++)rows.push({w:cal[2],r:workR});
+  return rows;
+}
+const EX=[
+{id:'cardio',block:'РАЗМИНКА',title:'КАРДИО-РАЗМИНКА',name:'Вело (разминка)',meta:'5 мин, пульс ~120',type:'task',restEx:30,
+ rows:[{label:'Вело 5 мин, пульс ~120',secs:300}],tags:[],
+ alts:[{name:'Дорожка, быстрая ходьба',tech:'5 мин быстрым шагом, можно в горку.'},{name:'Эллипс',tech:'5 мин ровно, пульс ~120.'}],
+ last:'<b>Прошлый раз:</b> вело 5 мин, пульс ~120.',
+ tech:'<b>ЗАДАЧА:</b> прогреть, не устать. После вело 10 круговых движений руками и растяжка плеч, особенно правого. Сделал: отметь ✓, иначе не попадёт в отчёт.'},
+{id:"lat",block:"СПИНА",title:"ТЯГА ВЕРХНЕГО БЛОКА",name:"Тяга верхнего блока",meta:"1 пробный + 3 рабочих · отдых 90с",type:"sets",rest:90,restWu:60,restEx:90,trial:{"w": 40, "r": 8},workR:10,cal:{"1": 68, "2": 63, "3": 59, "4": 54},alts:[{"name": "Подтягивания в гравитроне", "trial": {"w": 0, "r": 8}, "tech": "Подбери помощь по пробному; чем больше помощь, тем легче."}],tags:[],last:"05.11: 59×8 ×3. Цель 59×10.",tech:"СЕТАП: настрой тренажёр под рост, стабилизируй корпус. ВЫПОЛНЕНИЕ: подконтрольное опускание 2 секунды, без рывков. ОШИБКИ: читинг, потеря нейтральной поясницы. При боли прекращай подход."},
+{id:"seated",block:"СПИНА",title:"ТЯГА БЛОКА СИДЯ",name:"Тяга горизонтального блока сидя",meta:"1 пробный + 3 рабочих · отдых 90с",type:"sets",rest:90,restWu:60,restEx:90,trial:{"w": 30, "r": 10},workR:10,cal:{"1": 50, "2": 48, "3": 45, "4": 40},alts:[{"name": "Тяга гантели в наклоне", "trial": {"w": 14, "r": 8}, "tech": ""}],tags:[],last:"05.11: 45×10 ×3. Цель 45×10, затем 48.",tech:"СЕТАП: настрой тренажёр под рост, стабилизируй корпус. ВЫПОЛНЕНИЕ: подконтрольное опускание 2 секунды, без рывков. ОШИБКИ: читинг, потеря нейтральной поясницы. При боли прекращай подход."},
+{id:"lever",block:"СПИНА",title:"РЫЧАЖНАЯ ТЯГА",name:"Тяга в рычажном тренажёре сидя",meta:"1 пробный + 3 рабочих · отдых 90с",type:"sets",rest:90,restWu:60,restEx:90,trial:{"w": 25, "r": 10},workR:10,cal:{"1": 48, "2": 45, "3": 41, "4": 36},alts:[{"name": "Тяга с упором грудью", "trial": {"w": 20, "r": 8}, "tech": ""}],tags:[],last:"05.11: 41×10 ×3. Цель 41×10, затем 45.",tech:"СЕТАП: настрой тренажёр под рост, стабилизируй корпус. ВЫПОЛНЕНИЕ: подконтрольное опускание 2 секунды, без рывков. ОШИБКИ: читинг, потеря нейтральной поясницы. При боли прекращай подход."},
+{id:"hyper",block:"СПИНА",title:"ГИПЕРЭКСТЕНЗИЯ",name:"Гиперэкстензия в тренажёре",meta:"1 пробный + 3 рабочих · отдых 90с",type:"sets",rest:90,restWu:60,restEx:90,trial:{"w": 40, "r": 10},workR:10,cal:{"1": 73, "2": 68, "3": 63, "4": 58},alts:[{"name": "Гиперэкстензия без веса", "trial": {"w": 0, "r": 10}, "cal": {"1": 0, "2": 0, "3": 0, "4": 0}, "tech": ""}],tags:[],last:"05.11: 63×10 ×3, все «норм». Цель 68×10. Не переразгибай поясницу.",tech:"СЕТАП: настрой тренажёр под рост, стабилизируй корпус. ВЫПОЛНЕНИЕ: подконтрольное опускание 2 секунды, без рывков. ОШИБКИ: читинг, потеря нейтральной поясницы. При боли прекращай подход."},
+{id:"shrug",block:"СПИНА",title:"ШРАГИ",name:"Шраги в тренажёре",meta:"1 пробный + 3 рабочих · отдых 90с",type:"sets",rest:90,restWu:60,restEx:90,trial:{"w": 18, "r": 10},workR:10,cal:{"1": 35, "2": 32, "3": 30, "4": 27},alts:[{"name": "Шраги с гантелями", "trial": {"w": 12, "r": 10}, "tech": ""}],tags:[],last:"05.11: 28,5×10 ×3. Цель 30×10.",tech:"СЕТАП: настрой тренажёр под рост, стабилизируй корпус. ВЫПОЛНЕНИЕ: подконтрольное опускание 2 секунды, без рывков. ОШИБКИ: читинг, потеря нейтральной поясницы. При боли прекращай подход."},
+{id:"bicmachine",block:"БИЦЕПС",title:"БИЦЕПС В ТРЕНАЖЁРЕ",name:"Сгибание рук в тренажёре",meta:"1 пробный + 3 рабочих · отдых 90с",type:"sets",rest:90,restWu:60,restEx:90,trial:{"w": 16, "r": 8},workR:10,cal:{"1": 30, "2": 28, "3": 26, "4": 23},alts:[{"name": "Скамья Скотта EZ", "trial": {"w": 12, "r": 8}, "cal": {"1": 27, "2": 24, "3": 21, "4": 18}, "tech": ""}],tags:[],last:"05.11: 26×8 ×3. Цель 26×10.",tech:"СЕТАП: настрой тренажёр под рост, стабилизируй корпус. ВЫПОЛНЕНИЕ: подконтрольное опускание 2 секунды, без рывков. ОШИБКИ: читинг, потеря нейтральной поясницы. При боли прекращай подход."},
+{id:"bicdb",block:"БИЦЕПС",title:"ПОДЪЁМ ГАНТЕЛЕЙ",name:"Подъём гантелей на бицепс",meta:"1 пробный + 3 рабочих · отдых 90с",type:"sets",rest:90,restWu:60,restEx:90,trial:{"w": 8, "r": 8},workR:8,cal:{"1": 14, "2": 12, "3": 10, "4": 8},alts:[{"name": "Молотковые сгибания", "trial": {"w": 8, "r": 8}, "tech": ""}],tags:[],last:"05.11: 10×10 ×3. Цель 12×8; вес одной гантели.",tech:"СЕТАП: настрой тренажёр под рост, стабилизируй корпус. ВЫПОЛНЕНИЕ: подконтрольное опускание 2 секунды, без рывков. ОШИБКИ: читинг, потеря нейтральной поясницы. При боли прекращай подход."},
+{id:'abs',block:'ПРЕСС',title:'ПРЕСС В ТРЕНАЖЁРЕ С БЛИНОМ',name:'Пресс в тренажёре с блином',meta:'пробный 10×12, затем 3×10 · между подходами 8 подъёмов колен',type:'sets',rest:60,restWu:45,restEx:0,
+ trial:{w:10,r:12},workR:10,cal:{1:20,2:15,3:12.5,4:10},
+ alts:[
+  {name:'Скручивания на блоке',trial:{w:20,r:12},tech:'Колени на полу, вниз к коленям, спина округляется, не тянуть руками.'},
+  {name:'Подъёмы ног в висе',trial:{w:0,r:8},cal:{1:0,2:0,3:0,4:0},tech:'Без раскачки, поднимать до 90° и выше, вниз 2 сек. Вес 0 = своё тело.'}
+ ],
+ tags:['подъёмы колен 8×'],
+ last:'<b>26.10:</b> 15×10 ×3. <b>Цель:</b> 3×10 на 15, если все «норм» то 17,5.',
+ tech:'<b>ВЫПОЛНЕНИЕ:</b> скручивание корпуса вниз к тазу, не тянуть бёдрами, назад 2 сек. Выдох в сокращении.'}
+];
+EX.forEach(e=>{if(e.type==='sets')e.rows=mkRows(e.trial,e.workR,e.cal,3)});
+
+const KEY='ddx_pull_v4_'+new Date().toLocaleDateString('sv-SE');
+function load(){try{return JSON.parse(localStorage.getItem(KEY))}catch(e){return null}}
+let S=load()||{start:null,end:null,rest:null,ex:{}};
+if(!S.ex)S.ex={};
+EX.forEach(e=>{if(!S.ex[e.id])S.ex[e.id]={rows:e.rows.map(r=>({w:r.w===undefined?'':String(r.w),r:r.r===undefined?'':String(r.r),e:0,d:false})),n:'',t:[],skip:false,alt:-1,custom:'',why:[],side:!!e.sideDefault}});
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){console.warn('Save failed',e); if(!window.__ddxSaveWarned){window.__ddxSaveWarned=true;alert('Не удалось сохранить данные на устройстве. Проверь доступное место и настройки браузера. Скопируй отчёт перед закрытием.')}}}
+
+if(!S.start&&!S.end){EX.forEach(e=>{if(e.type!=='sets')return;const st=S.ex[e.id];if(st.rows.some(r=>r.d))return;const rec=window.DDXProgress?.recommend(e,st);if(rec&&rec.weight!=null){st.rows.slice(1).forEach(r=>{r.w=String(rec.weight);r.r=String(rec.reps)});}})}
+const EFF=['—','легко','легко-норм','норм','норм-тяжело','тяжело','кое как'];
+const isWu=(e,i)=>!!(e.rows[i]&&e.rows[i].wu);
+
+let AC=null,lastTick=-1,wl=null;
+function ensureAC(){try{if(!AC)AC=new (window.AudioContext||window.webkitAudioContext)();if(AC.state==='suspended')AC.resume()}catch(e){}}
+function beep(f,d,w=0,v=.4){if(!AC)return;const o=AC.createOscillator(),g=AC.createGain();o.type='square';o.frequency.value=f;g.gain.setValueAtTime(v,AC.currentTime+w);g.gain.exponentialRampToValueAtTime(.001,AC.currentTime+w+d);o.connect(g);g.connect(AC.destination);o.start(AC.currentTime+w);o.stop(AC.currentTime+w+d)}
+function sndEnd(){beep(880,.15);beep(1320,.3,.2)}
+function sndShort(){beep(660,.1)}
+async function keepAwake(){try{if('wakeLock' in navigator&&!wl){wl=await navigator.wakeLock.request('screen');wl.addEventListener('release',()=>{wl=null})}}catch(e){}}
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&S.start&&!S.end)keepAwake()});
+
+const $=id=>document.getElementById(id);
+function fmtT(s){return `${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`}
+function fmtR(s){return `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`}
+
+// ===== ЗАМЕНА / КАЛИБРОВКА =====
+function curAlt(e){const st=S.ex[e.id];return st.alt>=0&&e.alts?e.alts[st.alt]:null}
+function repName(e){const st=S.ex[e.id],a=curAlt(e);return a?a.name:((st.custom||'').trim())}
+function isGeneric(e){const st=S.ex[e.id],a=curAlt(e);return a?!a.cal:!!(st.custom&&st.custom.trim())}
+function expand6(b){
+  const m=(x,y)=>Math.round((x+y)/2*2)/2;
+  return {1:b[1],2:m(b[1],b[2]),3:b[2],4:m(b[2],b[3]),5:b[3],6:b[4]};
+}
+function curCal(e){
+  const st=S.ex[e.id],a=curAlt(e);
+  if(!isGeneric(e))return expand6((a&&a.cal&&a.cal!=='main')?a.cal:e.cal);
+  const tw=parseFloat(String(st.rows[0].w).replace(',','.'));
+  if(!tw)return null;
+  const o={};[1,2,3,4,5,6].forEach(k=>{o[k]=Math.floor(tw*GEN[k]*2)/2});
+  return o;
+}
+function curTrial(e){
+  const st=S.ex[e.id],a=curAlt(e);
+  if(a)return a.trial||(a.cal==='main'?e.trial:null);
+  return(st.custom&&st.custom.trim())?null:e.trial;
+}
+function calLines(cal){return [1,2,3,4,5,6].map(k=>`<div class="cl"><span>${EFF[k]}</span><span>${cal[k]} кг</span></div>`).join('')}
+function renderCal(e){
+  if(e.type!=='sets')return;
+  const box=$('cal-'+e.id),st=S.ex[e.id],a=curAlt(e),tr=curTrial(e),n=st.rows.length-1;
+  let h='<b>ПОДБОР ВЕСА</b>';
+  if(!isGeneric(e)){
+    h+=`<div>Пробный подход: <b style="color:var(--acc)">${tr.w} кг × ${tr.r}</b>. Как далось, такой рабочий вес на ${n}×${e.workR}:</div>`+calLines(curCal(e));
+  }else{
+    const cal=curCal(e);
+    h+=`<div>Базы по этому упражнению нет. Пробный: ${tr?`<b style="color:var(--acc)">${tr.w} кг × ${tr.r}</b> (можно вписать свой, лёгкий, как разминка)`:'впиши вес, с которым 8 повторов совсем лёгкие'}. Рабочий считаю от пробного: легко ×1,5, норм ×1,35, тяжело ×1,2, кое как ×1,1 (промежуточные посередине), округляю вниз.</div>`+(cal?calLines(cal):'');
+  }
+  h+=`<div class="live" id="cl-${e.id}"></div>`;
+  box.innerHTML=h;
+  showLive(e);
+}
+function showLive(e){
+  if(e.type!=='sets')return;
+  const st=S.ex[e.id],eff=st.rows[0].e,box=$('cl-'+e.id);
+  if(!box)return;
+  const cal=curCal(e);
+  box.textContent=(eff&&cal)?`Пробный «${EFF[eff]}» → рабочий вес ${cal[eff]} кг подставлен в ${st.rows.length-1} подхода (поле можно поправить).`:'';
+}
+function applyCal(e){
+  if(e.type!=='sets')return;
+  const st=S.ex[e.id],eff=st.rows[0].e;
+  if(!eff){showLive(e);return}
+  const cal=curCal(e);
+  if(!cal){toast('ВПИШИ ВЕС ПРОБНОГО ПОДХОДА');showLive(e);return}
+  const w=cal[eff];
+  st.rows.forEach((r,i)=>{if(i>0&&!r.d)r.w=String(w)});
+  save();renderRows(e);showLive(e);
+}
+function updRep(e){
+  const n=repName(e),rp=$('rp-'+e.id),a=curAlt(e),st=S.ex[e.id];
+  rp.textContent=n?'⇄ ЗАМЕНА: '+n:'';
+  let info='';
+  if(a)info=`<b>${a.name}.</b> ${a.tech||''}`;
+  else if(n)info=`<b>${n}.</b> Своё упражнение: базы нет, вес считается от пробного по общей формуле.`;
+  $('ai-'+e.id).innerHTML=info;
+}
+function applyAlt(e){
+  const st=S.ex[e.id];
+  if(e.type==='sets'){
+    const tr=curTrial(e);
+    const r0=st.rows[0];
+    if(!r0.d){r0.w=tr?String(tr.w):'';r0.r=String(tr?tr.r:8);r0.e=0}
+    const cal=curCal(e);
+    st.rows.forEach((r,i)=>{if(i>0&&!r.d){r.w=cal?String(cal[3]):'';r.r=String(e.workR);r.e=0}});
+    renderRows(e);renderCal(e);
+  }
+  updRep(e);save();
+}
+
+// ===== BUILD =====
+const list=$('list');
+let lastBlock='';
+EX.forEach(e=>{
+  if(e.block!==lastBlock){const t=document.createElement('div');t.className='block-title';t.textContent=e.block;list.appendChild(t);lastBlock=e.block}
+  const d=document.createElement('div');d.className='ex';d.id='ex-'+e.id;
+  d.innerHTML=`<div class="ex-head"><div><h3>${e.title}</h3><div class="meta">${e.meta}</div><div class="rp" id="rp-${e.id}"></div></div><div class="status" id="st-${e.id}"></div></div>
+  <div class="ex-body"><div class="last">${e.last}</div><div class="tech">${e.tech}</div>
+  ${e.type==='sets'?`<div class="cal" id="cal-${e.id}"></div>`:''}
+  <div id="rows-${e.id}"></div>
+  <div class="alt"><b>ЗАМЕНА УПРАЖНЕНИЯ</b>
+    <div class="quick" id="al-${e.id}"></div>
+    <input type="text" class="ctext" id="ac-${e.id}" placeholder="или впиши своё упражнение">
+    <div class="sub">Причина замены:</div>
+    <div class="quick" id="aw-${e.id}"></div>
+    <div class="altinfo" id="ai-${e.id}"></div>
+  </div>
+  <div class="quick" id="q-${e.id}"></div>
+  <textarea id="n-${e.id}" placeholder="заметки"></textarea>
+  <div class="ctl"><button id="sk-${e.id}">ПРОПУСТИТЬ УПРАЖНЕНИЕ</button></div></div>`;
+  list.appendChild(d);
+  d.querySelector('.ex-head').onclick=()=>d.classList.toggle('open');
+  const st=S.ex[e.id];
+  // теги
+  const qc=$('q-'+e.id);
+  e.tags.forEach(t=>{const b=document.createElement('button');b.className='qb'+(st.t.includes(t)?' sel':'');b.textContent=t;b.onclick=()=>{b.classList.toggle('sel');st.t=[...qc.querySelectorAll('.qb.sel')].map(x=>x.textContent);save()};qc.appendChild(b)});
+  const ni=$('n-'+e.id);ni.value=st.n||'';ni.oninput=()=>{st.n=ni.value;save()};
+  $('sk-'+e.id).onclick=()=>skipEx(e);
+  // замены
+  const al=$('al-'+e.id),ac=$('ac-'+e.id),aw=$('aw-'+e.id);
+  (e.alts||[]).forEach((a,i)=>{
+    const b=document.createElement('button');b.className='qb'+(st.alt===i?' sel':'');b.textContent=a.name;
+    b.onclick=()=>{
+      st.alt=(st.alt===i?-1:i);
+      if(st.alt>=0){st.custom='';ac.value=''}
+      [...al.children].forEach((c,j)=>c.classList.toggle('sel',j===st.alt));
+      applyAlt(e);
+    };
+    al.appendChild(b);
+  });
+  ac.value=st.custom||'';
+  ac.oninput=()=>{st.custom=ac.value;save();updRep(e)};
+  ac.onchange=()=>{
+    if(ac.value.trim()&&st.alt>=0){st.alt=-1;[...al.children].forEach(c=>c.classList.remove('sel'))}
+    st.custom=ac.value;applyAlt(e);
+  };
+  WHY.forEach(t=>{const b=document.createElement('button');b.className='qb'+(st.why.includes(t)?' sel':'');b.textContent=t;b.onclick=()=>{b.classList.toggle('sel');st.why=[...aw.querySelectorAll('.qb.sel')].filter(x=>!x.dataset.side).map(x=>x.textContent);save()};aw.appendChild(b)});
+  if(e.type==='sets'){
+    const sb=document.createElement('button');sb.className='qb'+(st.side?' sel':'');sb.dataset.side='1';sb.textContent='вес на сторону (×2)';
+    sb.onclick=()=>{st.side=!st.side;sb.classList.toggle('sel',st.side);save()};aw.appendChild(sb);
+  }
+  renderRows(e);refresh(e);renderCal(e);updRep(e);
+   if(e.type==='sets'){const advice=window.DDXProgress?.recommend(e,st);if(advice){const box=document.createElement('div');box.className='last';box.style.borderColor='#ffb040';box.textContent='ПО ИСТОРИИ: '+advice.text;d.querySelector('.ex-body').prepend(box);}}
+});
+const firstOpen=EX.find(e=>!S.ex[e.id].skip&&!S.ex[e.id].rows.every(r=>r.d))||EX[0];
+$('ex-'+firstOpen.id).classList.add('open');
+
+function renderRows(e){
+  const st=S.ex[e.id],box=$('rows-'+e.id);box.innerHTML='';
+  if(e.type==='sets'){
+    const h=document.createElement('div');h.className='row hd';
+    h.innerHTML='<span class="n"></span><span class="iw">кг</span><span class="ir">повт</span><span class="eff">как далось</span><span class="ok"></span>';
+    box.appendChild(h);
+  }
+  st.rows.forEach((r,i)=>{
+    const d=document.createElement('div');d.className='row'+(r.d?' done':'')+(isWu(e,i)?' trial':'');
+    if(e.type==='task'){
+      const lbl=document.createElement('span');lbl.className='lbl';lbl.textContent=e.rows[i].label;d.appendChild(lbl);
+      const go=document.createElement('button');go.className='go';go.textContent='▶';go.onclick=()=>{ensureAC();ensureStart();startRest(e.rows[i].secs,e.rows[i].label.toUpperCase())};d.appendChild(go);
+    }else{
+      const n=document.createElement('span');n.className='n'+(isWu(e,i)?' wu':'');n.textContent=isWu(e,i)?'проба':i;d.appendChild(n);
+      const w=document.createElement('input');w.className='iw';w.type='text';w.inputMode='decimal';w.value=r.w;w.placeholder='—';
+      w.oninput=()=>{r.w=w.value;save();if(isWu(e,i)&&isGeneric(e))renderCal(e)};d.appendChild(w);
+      const rp=document.createElement('input');rp.className='ir';rp.type='text';rp.inputMode='numeric';rp.value=r.r;rp.placeholder='—';rp.oninput=()=>{r.r=rp.value;save()};d.appendChild(rp);
+      const ef=document.createElement('button');ef.className='eff e'+r.e;ef.textContent=EFF[r.e];
+      ef.onclick=()=>{r.e=(r.e+1)%EFF.length;ef.className='eff e'+r.e;ef.textContent=EFF[r.e];save();if(isWu(e,i))applyCal(e)};
+      d.appendChild(ef);
+    }
+    const ok=document.createElement('button');ok.className='ok';ok.textContent='✓';ok.onclick=()=>toggleDone(e,i);d.appendChild(ok);
+    box.appendChild(d);
+  });
+}
+function refresh(e){
+  const st=S.ex[e.id],n=st.rows.filter(r=>r.d).length;
+  $('st-'+e.id).textContent=st.skip?'ПРОП.':n+'/'+st.rows.length;
+  const c=$('ex-'+e.id);
+  c.classList.toggle('done',!st.skip&&n===st.rows.length);
+  c.classList.toggle('skipped',st.skip);
+}
+function updBar(){
+  let d=0,t=0;
+  EX.forEach(e=>{const st=S.ex[e.id];if(st.skip)return;t+=st.rows.length;d+=st.rows.filter(r=>r.d).length});
+  $('pfill').style.width=(t?d/t*100:0)+'%';
+}
+function ensureStart(){if(!S.start){S.start=Date.now();save()}keepAwake()}
+function nextEx(e){
+  $('ex-'+e.id).classList.remove('open');
+  for(let i=EX.indexOf(e)+1;i<EX.length;i++){
+    const st=S.ex[EX[i].id];
+    if(!st.skip&&!st.rows.every(r=>r.d)){$('ex-'+EX[i].id).classList.add('open');return}
+  }
+}
+
+// ===== ACTIONS =====
+function toggleDone(e,i){
+  ensureAC();ensureStart();
+  const st=S.ex[e.id],row=st.rows[i];
+  row.d=!row.d;
+  const all=st.rows.every(r=>r.d);
+  if(row.d&&e.type==='sets'){
+    if(isWu(e,i)){
+      if(row.e)applyCal(e);
+      else toast('ОТМЕТЬ «КАК ДАЛОСЬ» У ПРОБНОГО, И Я ПОДСТАВЛЮ РАБОЧИЙ ВЕС');
+    }else if(!row.e){
+      toast('ПОСТАВЬ «КАК ДАЛОСЬ»: БЕЗ ЭТОГО ПОДХОД НЕ ПОПАДЁТ В РАЗБОР');
+    }
+  }
+  save();renderRows(e);refresh(e);updBar();
+  if(row.d){
+    if(all){nextEx(e);if(e.restEx>0)startRest(e.restEx,'ПЕРЕД СЛЕДУЮЩИМ УПРАЖНЕНИЕМ');else stopRest();sndShort()}
+    else if(e.type==='sets')startRest(isWu(e,i)?(e.restWu||60):e.rest,isWu(e,i)?'ПОСЛЕ ПРОБНОГО: ОЦЕНИ ВЕС':'ОТДЫХ МЕЖДУ ПОДХОДАМИ');
+  }else stopRest();
+}
+function skipEx(e){
+  const st=S.ex[e.id];st.skip=!st.skip;save();refresh(e);updBar();stopRest();
+  if(st.skip)nextEx(e);
+}
+function startRest(sec,label){S.rest={end:Date.now()+sec*1000,label};lastTick=-1;save();showRest()}
+function showRest(){if(!S.rest){$('restBar').classList.remove('on');return}$('restL').textContent=S.rest.label;$('restBar').classList.add('on');tick()}
+function stopRest(){S.rest=null;save();$('restBar').classList.remove('on')}
+function addRest(s){if(S.rest){S.rest.end+=s*1000;save();tick()}}
+
+function tick(){
+  const now=Date.now();
+  if(S.start){const el=Math.floor(((S.end||now)-S.start)/1000);$('totalTimer').textContent=fmtT(el)}
+  if(S.rest){
+    const left=Math.ceil((S.rest.end-now)/1000);
+    if(left<=0){stopRest();sndEnd();return}
+    $('restT').textContent=fmtR(left);
+    if(left<=3&&left!==lastTick){lastTick=left;sndShort()}
+  }
+}
+setInterval(tick,250);
+
+// ===== REPORT =====
+function fmtRow(e,r,i){
+  if(e.type==='task')return e.rows[i].label;
+  let s=(r.w!==''&&r.w!==undefined?r.w+'×':'')+(r.r||'?');
+  if(isWu(e,i))s+=' (пробный)';
+  if(r.e)s+=' '+EFF[r.e];
+  return s;
+}
+function stats(){
+  let work=0,kk=0,rep=0;
+  EX.forEach(e=>{
+    const st=S.ex[e.id];if(st.skip)return;
+    if(repName(e))rep++;
+    if(e.type!=='sets')return;
+    st.rows.forEach((r,i)=>{if(r.d&&!isWu(e,i)){work++;if(r.e===6)kk++}});
+  });
+  return{work,kk,rep};
+}
+function buildReport(){
+  const d=new Date(S.start||Date.now());
+  const el=Math.floor(((S.end||Date.now())-(S.start||Date.now()))/1000);
+  const x=stats();
+  const L=[`СПИНА + БИЦЕПС + ПРЕСС · DDX — ОТЧЁТ`,
+  `Дата: ${d.toLocaleDateString('ru-RU')} ${d.toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'})}`,
+  `Время: ${fmtT(el)} · Рабочих подходов: ${x.work} · «кое как»: ${x.kk} · Замен: ${x.rep}`,
+  `Контекст: в каждом упражнении 1 пробный + 3 рабочих, вес подобран по пробному; цель: запас 2 повтора`,``];
+  EX.forEach(e=>{
+    const st=S.ex[e.id],rn=repName(e);
+    let title=e.name+(rn?` → ЗАМЕНА: ${rn}`:'');
+    if(st.skip){L.push(`${title}: пропущено`);return}
+    const done=st.rows.map((r,i)=>({r,i})).filter(o=>o.r.d);
+    let l=`${title}: `+(done.length?done.map(o=>fmtRow(e,o.r,o.i)).join(', '):'не делал');
+    const meta=[];
+    if(rn&&st.why.length)meta.push('причина замены: '+st.why.join(', '));
+    if(st.side)meta.push('вес указан на сторону, итого ×2');
+    if(st.t.length)meta.push(st.t.join(', '));
+    if(meta.length)l+=` [${meta.join('; ')}]`;
+    if(st.n&&st.n.trim())l+=` — ${st.n.trim()}`;
+    L.push(l);
+  });
+  return L.join('\n');
+}
+function archiveSession(){
+  try {
+    if(!S.end || !S.start) return;
+    const id=KEY+'_'+S.start;
+    const record={id,kind:KEY.split('_')[1],date:new Date(S.start).toISOString(),start:S.start,end:S.end,stats:stats(),report:buildReport(),exercises:EX.map(e=>({id:e.id,name:e.name,replacement:repName(e),skipped:S.ex[e.id].skip,notes:S.ex[e.id].n||"",side:!!S.ex[e.id].side,rows:S.ex[e.id].rows.map(r=>({...r}))}))};
+    const parsed=JSON.parse(localStorage.getItem('ddx_history_v1')||'[]');
+    const history=Array.isArray(parsed)?parsed:[];
+    const at=history.findIndex(x=>x.id===id);
+    if(at>=0)history[at]=record;else history.push(record);
+    localStorage.setItem('ddx_history_v1',JSON.stringify(history));
+  }catch(err){console.warn('Archive failed',err);alert('Не удалось сохранить тренировку в историю. Скопируй отчёт и проверь свободное место.');}
+}
+function finish(){
+  if(!S.end){S.end=Date.now();if(!S.start)S.start=S.end;save()}
+  stopRest();
+  archiveSession();
+  const x=stats();
+  $('stTime').textContent=fmtT(Math.floor((S.end-S.start)/1000));
+  $('stSets').textContent=x.work;
+  $('stKK').textContent=x.kk+' из '+x.work;
+  $('stRep').textContent=x.rep;
+  $('scrMain').classList.add('hidden');$('scrFinal').classList.remove('hidden');
+  window.scrollTo(0,0);
+  try{if(wl){wl.release();wl=null}}catch(e){}
+}
+function backToMain(){S.end=null;save();$('scrFinal').classList.add('hidden');$('scrMain').classList.remove('hidden')}
+function copyReport(){
+  const text=buildReport(),box=$('reportBox');
+  box.classList.remove('hidden');box.value=text;
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(()=>toast('СКОПИРОВАНО')).catch(()=>fallbackCopy(box));
+  }else fallbackCopy(box);
+}
+function fallbackCopy(box){
+  try{box.focus();box.select();box.setSelectionRange(0,999999);const ok=document.execCommand('copy');toast(ok?'СКОПИРОВАНО':'ВЫДЕЛИ ТЕКСТ НИЖЕ ВРУЧНУЮ')}
+  catch(e){toast('ВЫДЕЛИ ТЕКСТ НИЖЕ ВРУЧНУЮ')}
+}
+function toast(m){const t=$('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2400)}
+
+let resetArm=false;
+function resetAll(){
+  const b=$('resetBtn');
+  if(!resetArm){resetArm=true;b.textContent='ТОЧНО? НАЖМИ ЕЩЁ РАЗ';setTimeout(()=>{resetArm=false;b.textContent='СБРОСИТЬ ТРЕНИРОВКУ'},3000);return}
+  try{localStorage.removeItem(KEY)}catch(e){}
+  location.reload();
+}
+
+updBar();showRest();tick();
+if(S.end){finish()}
+</script>
+<script src="pwa.js"></script></body>
+</html>
