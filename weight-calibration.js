@@ -144,7 +144,8 @@
         }
       }
     }
-    if (trial)
+    // Prefer the lighter documented hint when an earlier probe was heavier.
+    if (trial && (!hint || number(trial.w) <= hint[0]))
       result.trial = {
         weight: number(trial.w),
         reps: number(trial.r),
