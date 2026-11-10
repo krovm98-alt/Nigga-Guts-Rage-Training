@@ -227,6 +227,10 @@
     }
   }
   window.DDXStore = {
+    displayText: (value) =>
+      String(value)
+        .replace(/\bDDX\b/gi, "")
+        .replace(/решил Семён/gi, "другая причина"),
     HKEY,
     num,
     history,

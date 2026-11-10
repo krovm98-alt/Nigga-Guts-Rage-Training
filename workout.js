@@ -741,7 +741,7 @@ function buildReport() {
   );
   const x = stats();
   const L = [
-    `${KIND.toUpperCase()} · DDX — ОТЧЁТ`,
+    `${KIND.toUpperCase()} — ОТЧЁТ`,
     `Дата: ${d.toLocaleDateString("ru-RU")} ${d.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })}`,
     `Время: ${fmtT(el)} · Рабочих подходов: ${x.work} · «кое как»: ${x.kk} · Замен: ${x.rep}`,
     `Контекст: в каждом упражнении 1 пробный + 3 рабочих, вес подобран по пробному; цель: запас 2 повтора`,

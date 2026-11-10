@@ -6,7 +6,7 @@
     if (window.DDXCatalog?.get(catalogId)) {
       const rec = DDXCatalog.reliable(catalogId, st);
       if (!rec.last)
-        return { text: rec.reason + ". Следующая цель DDX справочная." };
+        return { text: rec.reason + ". Следующая цель из журнала справочная." };
       if (rec.weight === null)
         return {
           text: rec.reason + ". Укажи нагрузку вручную; повышение отключено.",

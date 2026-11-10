@@ -253,7 +253,7 @@ function renderWeightRecommendation(e, d) {
   advice.textContent =
     "Рекомендация по прогрессии: " +
     (DDXProgress.recommend(e, st)?.text ||
-      "Следующая цель DDX — справочная; повышение не применяется автоматически.");
+      "Следующая цель из журнала — справочная; повышение не применяется автоматически.");
   box.append(info, advice, warning);
   if (rec.weight === null) {
     const manual = document.createElement("p");
