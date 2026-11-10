@@ -136,7 +136,7 @@ test("export and restore actual session backup; edit history updates analytics",
   page.once("dialog", (d) => d.accept());
   await page.locator("#import").setInputFiles(path);
   await expect(page.locator("#count")).toHaveText("1");
-  await page.locator("summary").click();
+  await page.locator(".session > summary").click();
   await page.getByRole("button", { name: "ИЗМЕНИТЬ ПОДХОДЫ" }).click();
   const inputs = page
     .locator("fieldset")

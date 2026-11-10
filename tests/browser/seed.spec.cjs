@@ -7,7 +7,7 @@ test("real workout appears once in history and analytics with clean branding at 
   await page.goto("index.html");
   await expect(page.locator("h1")).toContainText("NIGGA");
   await expect(page.locator("#count")).toHaveText("1");
-  await page.locator(".session summary").click();
+  await page.locator(".session > summary").click();
   await expect(page.locator("#history")).toContainText("Начало второго месяца");
   await expect(page.locator("#history")).toContainText("106.5×7");
   expect(
