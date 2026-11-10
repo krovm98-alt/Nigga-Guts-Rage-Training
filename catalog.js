@@ -522,31 +522,142 @@
       .slice()
       .sort((a, b) => b.start - a.start)
       .flatMap((s) =>
-        s.exercises
-          .filter((e) => identity(e) === id && DDXStore.workRows(e).length)
-          .map((e) => ({ s, e })),
+        s.exercises.filter((e) => identity(e) === id).map((e) => ({ s, e })),
       )[0];
   }
-  function summary(x) {
-    const last = latest(x.id),
-      rows = last && DDXStore.workRows(last.e);
-    return (
-      (last
-        ? "Последнее выполнение: " +
-          new Date(last.s.start).toLocaleDateString("ru-RU") +
-          " · " +
-          rows.map((r) => r.w + "×" + r.r).join(", ")
-        : (x.weight === null
-            ? "Неподтверждённый ориентир: "
-            : "Последний подтверждённый вес из журнала: ") + x.reference) +
-      " · " +
-      x.unit +
-      " · " +
-      x.status +
-      ". " +
-      x.warning +
-      (last ? "" : " Следующая цель из журнала DDX: " + x.goal)
+  function reliable(id, st = {}) {
+    const x = get(id);
+    if (!x)
+      return {
+        weight: null,
+        reason: "Неизвестное упражнение: укажи вес вручную",
+      };
+    let last;
+    try {
+      last = latest(id);
+    } catch {
+      return {
+        weight: null,
+        reason: "История повреждена: рекомендации недоступны",
+      };
+    }
+    const pain = (value) => /(боль|болит|дискомфорт|чувствуется)/i.test(value);
+    const currentPain = pain(
+      [st.n, ...(st.t || []), ...(st.why || [])].join(" "),
     );
+    const result = {
+      weight: null,
+      last,
+      source: last ? "history" : "DDX",
+      unit: x.unit,
+    };
+    if (
+      currentPain ||
+      st.custom ||
+      st.alt >= 0 ||
+      st.skip ||
+      st.side ||
+      id === "lateral_delt_machine"
+    )
+      return {
+        ...result,
+        reason:
+          "Дискомфорт, замена, пропуск или неоднозначная единица веса: укажи вес вручную",
+      };
+    if (!last)
+      return {
+        ...result,
+        weight: x.requiresConfirmation ? null : x.weight,
+        reason: x.requiresConfirmation
+          ? "Неподтверждённый ориентир: укажи рабочий вес вручную"
+          : "Источник: исходный журнал DDX; реальных тренировок в приложении нет",
+      };
+    const e = last.e,
+      planned = e.rows.slice(1),
+      rows = DDXStore.workRows(e);
+    const facts = planned
+      .filter((r) => r.d)
+      .map((r) => r.w + "×" + r.r)
+      .join(", ");
+    result.facts = facts || "Нет выполненных рабочих подходов";
+    if (pain([e.notes, ...(e.tags || []), ...(e.why || [])].join(" ")))
+      return {
+        ...result,
+        reason: "Боль или дискомфорт: повышение отключено; укажи вес вручную",
+      };
+    if (
+      e.side ||
+      (e.unit && e.unit !== x.unit) ||
+      (e.equipment && e.equipment !== x.equipment)
+    )
+      return {
+        ...result,
+        reason: "Единицы или оборудование отличаются: укажи вес вручную",
+      };
+    const weights = planned.filter((r) => r.d).map((r) => DDXStore.num(r.w));
+    if (new Set(weights).size > 1)
+      return { ...result, reason: "Вес менялся между подходами" };
+    if (e.skipped || !planned.length || rows.length !== planned.length)
+      return {
+        ...result,
+        reason:
+          "Неполные или некорректные рабочие подходы: повышение отключено",
+      };
+    if (rows.some((r) => r.e < 1 || r.e >= 4))
+      return {
+        ...result,
+        reason: "Высокая или неизвестная сложность: повышение отключено",
+      };
+    return {
+      ...result,
+      weight: DDXStore.num(rows[0].w),
+      reps: Math.min(...rows.map((r) => DDXStore.num(r.r))),
+      reason:
+        "Все запланированные рабочие подходы выполнены с одинаковым весом",
+    };
   }
-  window.DDXCatalog = { items, legacy, get, identity, latest, summary };
+  function summary(x, st = {}) {
+    const rec = reliable(x.id, st);
+    return [
+      rec.last
+        ? "Последняя тренировка: " +
+          new Date(rec.last.s.start).toLocaleDateString("ru-RU") +
+          ". Последние выполненные веса: " +
+          (rec.facts ||
+            rec.last.e.rows
+              .slice(1)
+              .filter((r) => r.d)
+              .map((r) => r.w + "×" + r.r)
+              .join(", ") ||
+            "нет")
+        : "Последняя тренировка: нет данных",
+      "Подтверждённый рабочий вес: " +
+        (rec.weight === null
+          ? "не определён"
+          : rec.weight +
+            " кг (" +
+            (rec.source === "DDX" ? "журнал DDX" : "последняя тренировка") +
+            ")"),
+      rec.reason,
+      "Исходный ориентир DDX: " +
+        x.reference +
+        (x.requiresConfirmation ? " — Неподтверждённый" : ""),
+      "Следующая цель из журнала DDX: " + x.goal,
+      "Целевые повторы: " + x.reps,
+      x.unit,
+      x.status,
+      x.warning,
+    ]
+      .filter(Boolean)
+      .join(". ");
+  }
+  window.DDXCatalog = {
+    items,
+    legacy,
+    get,
+    identity,
+    latest,
+    reliable,
+    summary,
+  };
 })();

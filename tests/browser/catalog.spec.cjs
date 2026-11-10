@@ -16,11 +16,12 @@ test("replacement persists, archives canonical identity, exports and leaves next
 }) => {
   await replace(page);
   await page.reload();
-  expect(await page.evaluate(() => S.ex.dbbench.rows[1].w)).toBe("50");
+  expect(await page.evaluate(() => S.ex.dbbench.rows[1].w)).toBe("");
   expect(
     await page.evaluate(() => EX.find((x) => x.id === "dbincline").name),
   ).toBe("Жим гантелей на наклонной");
   await page.locator("#ex-dbbench .ex-head").click();
+  await page.locator("#ex-dbbench input.iw").nth(1).fill("50");
   await page.locator("#ex-dbbench button.ok").nth(1).click();
   await page
     .locator("#ex-dbbench")
@@ -71,15 +72,14 @@ test("extra exercise, duplicate protection, order, completed deletion protection
   await page
     .getByRole("button", { name: "Выбрать: Грудной тренажёр", exact: true })
     .click();
-  const card = page
-    .locator(".ex")
-    .filter({
-      has: page.getByRole("heading", { name: "Грудной тренажёр", exact: true }),
-    });
+  const card = page.locator(".ex").filter({
+    has: page.getByRole("heading", { name: "Грудной тренажёр", exact: true }),
+  });
   await card.locator(".ex-head").click();
   await card.getByRole("button", { name: "Переместить выше" }).click();
   await card.locator(".ex-head").click();
   await expect(card.locator("button.ok")).toHaveCount(3);
+  await card.locator("input.iw").nth(1).fill("41");
   await card.locator("button.ok").nth(1).click();
   await card
     .getByRole("button", { name: "Удалить дополнительное упражнение" })

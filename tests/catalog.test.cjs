@@ -83,7 +83,10 @@ test("real history drives canonical progression across days without touching sou
     }).weight,
     52.5,
   );
-  assert.equal(c.DDXProgress.recommend({ id: "dbbench", workR: 8 }), null);
+  assert.equal(
+    c.DDXProgress.recommend({ id: "dbbench", workR: 8 }).weight,
+    undefined,
+  );
   assert.equal(c.DDXCatalog.latest("smith_bench").s.kind, "pull");
   assert.equal(c.localStorage.getItem(), raw);
 });

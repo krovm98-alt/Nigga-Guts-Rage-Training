@@ -1,4 +1,4 @@
-const CACHE = "guts-rage-v5-production-1-catalog-1";
+const CACHE = "guts-rage-v5-production-1-catalog-2";
 const ASSETS = [
   "./catalog.js",
   "./catalog-session.js",
