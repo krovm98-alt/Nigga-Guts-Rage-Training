@@ -31,190 +31,86 @@
   };
   const number = DDXStore.num;
   function evaluate(exerciseId, state, history) {
-    const x = DDXCatalog.get(exerciseId),
-      actual = state.rows?.[0];
-    // The actual replacement has already been resolved by the caller.
-    const reliable = DDXCatalog.reliable(
-      exerciseId,
-      { ...state, alt: -1, custom: "" },
-      history,
-    );
+    const x = DDXCatalog.get(exerciseId), actual = state.rows?.[0];
+    const reliable = DDXCatalog.reliable(exerciseId, { ...state, alt:-1, custom:"" }, history);
+    const recent = reliable.last?.e;
+    const completed = (recent?.rows || []).slice(1).filter(r =>
+      r.d && Number.isFinite(number(r.w)) && number(r.w) > 0).map(r => number(r.w));
+    const pain = /(боль|болит|дискомфорт|чувствуется)/i.test(
+      [state.n,...(state.t||[]),...(state.why||[]),recent?.notes,
+       ...(recent?.tags||[]),...(recent?.why||[])].join(" "));
+    const incompatible = !x || state.side || state.skip || state.custom ||
+      (state.alt != null && state.alt >= 0) || exerciseId === "lateral_delt_machine" ||
+      !!recent?.side || !!(recent?.unit && recent.unit !== x.unit) ||
+      !!(recent?.equipment && recent.equipment !== x.equipment);
     const result = {
-      exerciseId,
-      unit: x?.unit || "Единица требует уточнения",
-      base: reliable.weight,
-      source:
-        reliable.weight === null
-          ? "Надёжная база не подтверждена"
-          : reliable.source === "history"
-            ? "Последняя достоверная тренировка"
-            : "Подтверждённый исходный ориентир",
-      trial: { weight: null, reps: 8, reason: "Вес требует уточнения" },
-      work: {
-        weight: null,
-        reps: x?.reps || 8,
-        sets: Math.max(0, (state.rows?.length || 1) - 1),
-        confidence: "недостаточно данных",
-        reason: reliable.reason,
-      },
-      actual: actual ? { ...actual } : null,
+      exerciseId, unit:x?.unit || "Единица требует уточнения",
+      base:reliable.weight, source:reliable.source === "history" ? "Последняя тренировка" : "Исходный ориентир",
+      trial:{weight:null,reps:8,reason:"Вес требует уточнения"},
+      work:{weight:null,reps:x?.reps||8,sets:Math.max(0,(state.rows?.length||1)-1),
+        confidence:"недостаточно данных",reason:"Выполни пробный подход и оцени усилие."},
+      actual:actual ? {...actual} : null,
     };
     const finish = () => {
-      result.signature = JSON.stringify([
-        exerciseId,
-        actual,
-        state.side,
-        state.n,
-        state.t,
-        state.why,
-        {
-          weight: reliable.weight,
-          reason: reliable.reason,
-          source: reliable.source,
-          unit: reliable.unit,
-          last: reliable.last
-            ? {
-                id: reliable.last.s.id,
-                start: reliable.last.s.start,
-                exercise: reliable.last.e,
-              }
-            : null,
-        },
-        result.trial,
-        result.work,
-      ]);
+      result.signature = JSON.stringify([exerciseId,actual,state.side,state.n,state.t,
+        state.why,reliable.weight,reliable.reason,reliable.last?.s.id,recent?.rows,
+        result.trial,result.work]);
       return result;
     };
-    // A cautious trial hint is independent of whether a *working* load is reliable.
-    // Never turn a trial hint into an automatic working-load recommendation.
+    if (incompatible || pain) {
+      result.work.reason = "Неоднозначные единицы или дискомфорт: подбери нагрузку вручную.";
+      return finish();
+    }
     const hint = hints[exerciseId];
-    const unsafeCurrent =
-      state.side ||
-      state.skip ||
-      state.custom ||
-      (state.alt != null && state.alt >= 0) ||
-      /(боль|болит|дискомфорт|чувствуется)/i.test(
-        [state.n, ...(state.t || []), ...(state.why || [])].join(" "),
-      ) ||
-      exerciseId === "lateral_delt_machine";
-    if (!x || unsafeCurrent) return finish();
-
-    // Do not suggest a trial load above weights actually completed in the
-    // latest session, even if that session was unsuitable for progression.
-    const recent = reliable.last?.e;
-    const completedWeights = (recent?.rows || [])
-      .slice(1)
-      .filter((r) => r.d && Number.isFinite(number(r.w)) && number(r.w) > 0)
-      .map((r) => number(r.w));
-    const cap = completedWeights.length
-      ? Math.min(...completedWeights)
-      : Number.isFinite(reliable.weight) && reliable.weight > 0
-        ? reliable.weight
-        : null;
-    const validTrial = (r) =>
-      r &&
-      r.d &&
-      Number.isFinite(number(r.w)) &&
-      number(r.w) > 0 &&
-      (cap === null || number(r.w) <= cap) &&
-      Number.isInteger(number(r.r)) &&
-      number(r.r) > 0 &&
-      r.e >= 1 &&
-      r.e <= 3;
-    let trial = validTrial(recent?.rows?.[0]) ? recent.rows[0] : null;
-    if (!trial && Array.isArray(history)) {
-      // A historical probe is useful only for the same canonical exercise
-      // and unit, and must not exceed the current conservative cap.
-      for (const session of history
-        .filter((session) => session.start < (reliable.last?.s.start || Infinity))
-        .slice()
-        .sort((a, b) => b.start - a.start)) {
-        const candidate = session.exercises?.find(
-          (e) => DDXCatalog.identity(e) === exerciseId &&
-            !e.skipped &&
-            !e.side &&
-            (!e.unit || e.unit === x.unit) &&
-            (!e.equipment || e.equipment === x.equipment),
-        );
-        if (candidate && validTrial(candidate.rows?.[0])) {
-          trial = candidate.rows[0];
-          result.source +=
-            "; проба от " + new Date(session.start).toLocaleDateString("ru-RU");
-          break;
-        }
-      }
-    }
-    // Prefer the lighter documented hint when an earlier probe was heavier.
-    if (trial && (!hint || number(trial.w) <= hint[0]))
-      result.trial = {
-        weight: number(trial.w),
-        reps: number(trial.r),
-        reason: "Ранее выполненная совместимая лёгкая проба; рабочий вес оценивается отдельно",
-      };
-    else if (
-      hint &&
-      (cap === null || hint[0] <= cap) &&
-      Number.isFinite(hint[0]) &&
-      hint[0] > 0
-    )
-      result.trial = {
-        weight: hint[0],
-        reps: hint[1],
-        reason: "Предварительный ориентир пробного подхода; рабочий вес не подтверждён",
-      };
-
-    if (reliable.weight === null || !Number.isFinite(reliable.weight))
-      return finish();
-    result.work.reason =
-      "Выполни пробный подход и укажи фактические вес, повторы и сложность.";
+    const cap = completed.length ? Math.min(...completed) :
+      Number.isFinite(reliable.weight) && reliable.weight > 0 ? reliable.weight :
+      Number.isFinite(x.weight) && x.weight > 0 ? x.weight : null;
+    const prevTrial = recent?.rows?.[0];
+    const validTrial = r => r && r.d && Number.isFinite(number(r.w)) &&
+      number(r.w)>0 && (cap===null || number(r.w)<=cap) &&
+      Number.isInteger(number(r.r)) && number(r.r)>0 && r.e>=1 && r.e<=3;
+    if (hint && hint[0]>0 && (cap===null || hint[0]<=cap))
+      result.trial={weight:hint[0],reps:hint[1],reason:"Стартовый пробный вес; можно изменить"};
+    if (validTrial(prevTrial) &&
+       (result.trial.weight===null || number(prevTrial.w)<result.trial.weight))
+      result.trial={weight:number(prevTrial.w),reps:number(prevTrial.r),reason:"Ранее выполненная лёгкая проба"};
+    // Do not multiply a trial to guess a max. Use known loads only as ceilings.
+    const historical = reliable.weight != null ? reliable.weight : cap;
+    const base = Number.isFinite(historical) && historical>0 ?
+      Math.min(historical,...(completed.length ? completed : [historical])) : null;
     if (!actual?.d) return finish();
-    const w = number(actual.w),
-      r = number(actual.r);
-    if (
-      !Number.isFinite(w) ||
-      w <= 0 ||
-      !Number.isInteger(r) ||
-      r <= 0 ||
-      !Number.isInteger(actual.e) ||
-      actual.e < 1 ||
-      actual.e > 3
-    ) {
-      result.work.reason =
-        "Проба тяжёлая, неизвестной сложности или некорректна. Повышение запрещено; подбери посильную нагрузку вручную.";
+    const w=number(actual.w), reps=number(actual.r), effort=actual.e;
+    if (!Number.isFinite(w) || w<=0 || !Number.isInteger(reps) || reps<=0 ||
+      !Number.isInteger(effort) || effort<1 || effort>6) {
+      result.work.reason="Укажи фактический вес, повторы и усилие пробного подхода.";
       return finish();
     }
-    if (
-      result.trial.weight === null ||
-      w < result.trial.weight ||
-      r < result.trial.reps
-    ) {
-      result.work.reason = `Фактическая проба ${w}×${r} недостаточна для оценки ${reliable.weight} кг. Выполни промежуточный проверочный подход и обнови пробу, либо выбери вес вручную.`;
+    if (effort===6) {
+      result.work.reason="Проба в отказ: рабочий вес подбирай вручную без повышения.";
       return finish();
     }
-    if (w > reliable.weight) {
-      result.work.reason = `Проба ${w}×${r} выше достоверной базы ${reliable.weight} кг. Рост не подтверждён; выбери нагрузку вручную.`;
+    if (base===null || w>base) {
+      result.work.reason="Нет достоверного ориентира рабочего веса. Проверь нагрузку дополнительным подходом или выбери её вручную.";
       return finish();
     }
-    if (
-      state.rows
-        .slice(1)
-        .some(
-          (row) =>
-            row.d &&
-            (row.e < 1 ||
-              row.e >= 4 ||
-              number(row.w) !== reliable.weight ||
-              number(row.r) <= 0),
-        )
-    ) {
-      result.work.reason =
-        "Текущие рабочие подходы отличаются от базы или слишком трудны. Повторное применение отключено.";
+    if (result.trial.weight!==null &&
+      (w<result.trial.weight*0.7 || reps<Math.max(4,Math.floor(result.trial.reps*0.65)))) {
+      result.work.reason="Проба слишком лёгкая или короткая для оценки; нужен промежуточный проверочный подход.";
       return finish();
     }
-    result.work.weight = reliable.weight;
-    result.work.confidence =
-      reliable.source === "history" ? "умеренная" : "низкая: исходный ориентир";
-    result.work.reason = `Учтена фактическая проба ${w} кг × ${r}, сложность ${actual.e}/6. Повтори ${reliable.weight} кг без повышения; лёгкая проба не подтверждает рост нагрузки.`;
+    const factor=effort<=3 ? 1 : effort===4 ? 0.9 : 0.8;
+    let target=Math.floor(base*factor*2)/2;
+    if (completed.length) target=Math.min(target,Math.min(...completed));
+    if (target<w) {
+      result.work.reason="Проба тяжелее консервативного рабочего ориентира. Уменьши вес или подбери его вручную.";
+      return finish();
+    }
+    result.work.weight=target;
+    result.work.confidence=reliable.weight===null ? "низкая: неоднородная история" : "умеренная";
+    result.work.reason="Проба "+w+" кг × "+reps+", усилие "+effort+
+      "/6. "+(effort<=3 ? "Предложено удержать прежнюю нагрузку." :
+        "Проба была напряжённой, рабочий ориентир снижен.")+
+      " Проверь доступные шаги оборудования и технику; повышение не автоматическое.";
     return finish();
   }
   function apply(state, result, kind) {
