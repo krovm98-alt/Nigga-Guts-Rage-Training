@@ -1,75 +1,40 @@
 const { test, expect } = require("@playwright/test");
-test("base calibration uses actual probe, explicit confirmation and protects manual and completed rows after restart", async ({
-  page,
-}) => {
+test("trial is prefilled without a button and effort changes the suggested work load", async ({ page }) => {
   await page.goto("index.html");
   await page.evaluate(() => {
-    const row = (w) => ({ w: String(w), r: "8", e: 2, d: true });
-    localStorage.setItem(
-      "ddx_history_v1",
-      JSON.stringify([
-        {
-          id: "stable-test",
-          kind: "push",
-          start: 1000,
-          end: 2000,
-          exercises: [
-            {
-              id: "dbbench",
-              exerciseId: "db_bench",
-              name: "Жим",
-              rows: [row(12), row(21), row(21), row(21)],
-            },
-          ],
-        },
-      ]),
-    );
+    const row = (w, e=2) => ({w:String(w),r:"8",e,d:true});
+    localStorage.setItem("ddx_history_v1", JSON.stringify([{
+      id:"stable-test",kind:"push",start:1000,end:2000,exercises:[{
+        id:"dbbench",exerciseId:"db_bench",name:"Жим",
+        rows:[row(12),row(21),row(21),row(21)]
+      }]
+    }]));
   });
   await page.goto("push.html");
   const card = page.locator("#ex-dbbench");
   await card.locator(".ex-head").click();
-  const weights = card.locator("input.iw");
-  await expect(weights.nth(0)).toHaveValue("");
-  await expect(weights.nth(1)).toHaveValue("");
-  page.once("dialog", (d) => d.accept());
-  await card
-    .getByRole("button", { name: "Применить пробный вес", exact: true })
-    .click();
+  const weights=card.locator("input.iw");
   await expect(weights.nth(0)).toHaveValue("12");
   await expect(weights.nth(1)).toHaveValue("");
+  await expect(card.getByRole("button",{name:"Применить пробный вес"})).toHaveCount(0);
   await weights.nth(0).fill("14");
   await card.locator("button.eff").nth(0).click();
   await card.locator("button.ok").nth(0).click();
   await expect(card.locator(".cal")).toContainText("14 кг × 8");
-  const apply = card.getByRole("button", {
-    name: "Применить рабочий вес",
-    exact: true,
-  });
-  page.once("dialog", (d) => d.dismiss());
-  await apply.click();
-  await expect(weights.nth(1)).toHaveValue("");
-  page.once("dialog", (d) => d.accept());
+  const apply=card.getByRole("button",{name:"Применить рабочий вес"});
+  await expect(apply).toBeVisible();
+  page.once("dialog", d=>d.accept());
   await apply.click();
   await expect(weights.nth(1)).toHaveValue("21");
-  await card.locator("button.eff").nth(1).click();
-  await card.locator("button.ok").nth(1).click();
-  await weights.nth(2).fill("20,5");
-  await weights.nth(0).fill("15");
-  await expect(card.locator(".cal")).toContainText("устарела");
-  page.once("dialog", (d) => d.accept());
-  await apply.click();
-  await expect(weights.nth(1)).toHaveValue("21");
-  await expect(weights.nth(2)).toHaveValue("20,5");
-  await expect(weights.nth(0)).toHaveValue("15");
+  await card.locator("button.eff").nth(0).click();
+  await card.locator("button.eff").nth(0).click();
+  await card.locator("button.eff").nth(0).click();
+  await expect(card.locator(".cal")).toContainText("рабочий ориентир снижен");
+  await weights.nth(1).fill("20,5");
   await page.reload();
-  expect(await page.evaluate(() => S.ex.dbbench.rows[2].w)).toBe("20,5");
-  expect(await page.evaluate(() => S.ex.dbbench.calibration.work.weight)).toBe(
-    21,
-  );
-  await card.locator(".ex-head").click();
-  await weights.nth(0).fill("5");
-  await expect(apply).toHaveCount(0);
-  await expect(card.locator(".cal")).toContainText("промежуточный проверочный");
+  await expect(weights.nth(0)).toHaveValue("14");
+  await expect(weights.nth(1)).toHaveValue("20,5");
+  await expect(card.getByRole("button",{name:"Применить пробный вес"})).toHaveCount(0);
 });
 test("bloodstorm SVG droplets move, lightning branches render at all Android widths and background pauses", async ({
   page,
