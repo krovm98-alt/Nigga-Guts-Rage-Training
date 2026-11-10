@@ -125,6 +125,7 @@ test("export and restore actual session backup; edit history updates analytics",
 }) => {
   await page.goto("push.html");
   await page.locator(".ex-head").nth(1).click();
+  await page.locator(".ex").nth(1).locator("input.iw").nth(1).fill("21");
   await page.locator(".ex").nth(1).locator("button.ok").nth(1).click();
   await page.evaluate(() => finish());
   await page.goto("index.html");
