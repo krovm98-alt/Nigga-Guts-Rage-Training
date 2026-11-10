@@ -51,7 +51,7 @@ EX.forEach((e) => {
   if (!S.ex[e.id])
     S.ex[e.id] = {
       rows: e.rows.map((r) => ({
-        w: r.w === undefined ? "" : String(r.w),
+        w: e.type === "sets" ? "" : r.w === undefined ? "" : String(r.w),
         r: r.r === undefined ? "" : String(r.r),
         e: 0,
         d: false,
@@ -171,118 +171,14 @@ function isGeneric(e) {
     a = curAlt(e);
   return a ? !a.cal : !!(st.custom && st.custom.trim());
 }
-function expand6(b) {
-  const m = (x, y) => Math.round(((x + y) / 2) * 2) / 2;
-  return {
-    1: b[1],
-    2: m(b[1], b[2]),
-    3: b[2],
-    4: m(b[2], b[3]),
-    5: b[3],
-    6: b[4],
-  };
-}
-function curCal(e) {
-  if (e.catalog) return null;
-  if (isGeneric(e)) return null;
-  const st = S.ex[e.id],
-    a = curAlt(e);
-  if (!isGeneric(e))
-    return expand6(a && a.cal && a.cal !== "main" ? a.cal : e.cal);
-  return null;
-}
-function curTrial(e) {
-  if (e.catalog) return null;
-  const st = S.ex[e.id],
-    a = curAlt(e);
-  if (a) return a.trial || (a.cal === "main" ? e.trial : null);
-  return st.custom && st.custom.trim() ? null : e.trial;
-}
-function calLines(cal) {
-  return [1, 2, 3, 4, 5, 6]
-    .map(
-      (k) =>
-        `<div class="cl"><span>${EFF[k]}</span><span>${cal[k]} кг</span></div>`,
-    )
-    .join("");
-}
 function renderCal(e) {
-  if (e.type !== "sets") return;
-  const box = $("cal-" + e.id),
-    st = S.ex[e.id],
-    a = curAlt(e),
-    tr = curTrial(e),
-    n = st.rows.length - 1;
-  let h = "<b>ПОДБОР ВЕСА</b>";
-  if (e.catalog) {
-    box.textContent =
-      "Пробный вес выбери самостоятельно. Рабочий вес можно ввести вручную или применить после подтверждения.";
-    return;
-  }
-  if (!isGeneric(e)) {
-    h +=
-      `<div>Пробный подход: <b style="color:var(--acc)">${tr.w} кг × ${tr.r}</b>. Как далось, такой рабочий вес на ${n}×${e.workR}:</div>` +
-      calLines(curCal(e));
-  } else {
-    const cal = curCal(e);
-    h +=
-      `<div>Базы по этому упражнению нет. Автоматический расчёт отключён. Пробный: ${tr ? `<b style="color:var(--acc)">${tr.w} кг × ${tr.r}</b> (можно вписать свой, лёгкий, как разминка)` : "выбери лёгкий вес самостоятельно"}. Рабочий вес введи вручную.</div>` +
-      (cal ? calLines(cal) : "");
-  }
-  h += `<div class="live" id="cl-${e.id}"></div>`;
-  box.innerHTML = h;
-  showLive(e);
+  if (e.type === "sets") renderWeightRecommendation(e, $("ex-" + e.id));
 }
 function showLive(e) {
-  if (e.type !== "sets") return;
-  const st = S.ex[e.id],
-    eff = st.rows[0].e,
-    box = $("cl-" + e.id);
-  if (!box) return;
-  const cal = curCal(e);
-  box.textContent =
-    eff && cal
-      ? `Пробный «${EFF[eff]}» → рабочий вес ${cal[eff]} кг — ориентир для ${st.rows.length - 1} подхода (поле можно поправить).`
-      : "";
+  renderCal(e);
 }
 function applyCal(e) {
-  if (e.type !== "sets") return;
-  const st = S.ex[e.id],
-    eff = st.rows[0].e;
-  if (!eff) {
-    showLive(e);
-    return;
-  }
-  const cal = curCal(e);
-  if (!cal) {
-    toast("ВПИШИ ВЕС ПРОБНОГО ПОДХОДА");
-    showLive(e);
-    return;
-  }
-  if (
-    eff >= 4 ||
-    /(боль|болит|дискомфорт|чувствуется)/i.test(
-      [st.n, ...st.t, ...st.why].join(" "),
-    )
-  ) {
-    toast("ПОВЫШЕНИЕ ОТКЛЮЧЕНО: СЛОЖНОСТЬ ИЛИ ДИСКОМФОРТ");
-    return;
-  }
-  const w = cal[eff];
-  if (
-    !confirm(
-      "Подставить " +
-        w +
-        " кг в незавершённые подходы? Это ориентир, а не обязательная нагрузка.",
-    )
-  )
-    return;
-  st.rows.forEach((r, i) => {
-    if (i > 0 && !r.d) r.w = String(w);
-  });
-  save();
-  renderRows(e);
-  showLive(e);
+  renderCal(e);
 }
 function updRep(e) {
   const n = repName(e),
@@ -302,21 +198,13 @@ function applyAlt(e) {
     return;
   }
   if (e.type === "sets") {
-    const tr = curTrial(e);
-    const r0 = st.rows[0];
-    if (!r0.d) {
-      r0.w = tr ? String(tr.w) : "";
-      r0.r = String(tr ? tr.r : 8);
-      r0.e = 0;
-    }
-    const cal = curCal(e);
-    st.rows.forEach((r, i) => {
-      if (i > 0 && !r.d) {
-        r.w = cal ? String(cal[3]) : "";
-        r.r = String(e.workR);
-        r.e = 0;
-      }
+    st.rows.forEach((r) => {
+      r.w = "";
+      r.e = 0;
+      delete r.manualWeight;
     });
+    delete st.calibration;
+    delete st.weightApplication;
     renderRows(e);
     renderCal(e);
   }
@@ -338,8 +226,8 @@ EX.forEach((e) => {
   const d = document.createElement("div");
   d.className = "ex";
   d.id = "ex-" + e.id;
-  d.innerHTML = `<div class="ex-head"><div><h3>${e.title}</h3><div class="meta">${e.meta}</div><div class="rp" id="rp-${e.id}"></div></div><div class="status" id="st-${e.id}"></div></div>
-  <div class="ex-body"><div class="last">${e.last}</div><div class="tech">${e.tech}</div>
+  d.innerHTML = `<div class="ex-head"><div><h3>${e.title}</h3><div class="meta">${e.type === "sets" ? "Пробный и рабочий вес — в блоке калибровки · отдых " + e.rest + "с" : e.meta}</div><div class="rp" id="rp-${e.id}"></div></div><div class="status" id="st-${e.id}"></div></div>
+  <div class="ex-body">${e.type === "sets" ? "" : `<div class="last">${e.last}</div>`}<div class="tech">${e.tech}</div>
   ${e.type === "sets" ? `<div class="cal" id="cal-${e.id}"></div>` : ""}
   <div id="rows-${e.id}"></div>
   <div class="alt"><b>ЗАМЕНА УПРАЖНЕНИЯ</b>
@@ -462,16 +350,6 @@ EX.forEach((e) => {
   refresh(e);
   renderCal(e);
   updRep(e);
-  if (e.type === "sets" && !e.catalog) {
-    const advice = window.DDXProgress?.recommend(e, st);
-    if (advice) {
-      const box = document.createElement("div");
-      box.className = "last";
-      box.style.borderColor = "var(--acc)";
-      box.textContent = "ПО ИСТОРИИ: " + advice.text;
-      d.querySelector(".ex-body").prepend(box);
-    }
-  }
 });
 const addExercise = document.createElement("button");
 addExercise.textContent = "Добавить упражнение";
@@ -524,6 +402,7 @@ function renderRows(e) {
       w.setAttribute("aria-label", e.name + " вес подхода " + i);
       w.oninput = () => {
         r.w = w.value;
+        if (i > 0) r.manualWeight = true;
         save();
         if (isWu(e, i) && isGeneric(e)) renderCal(e);
       };
@@ -608,7 +487,8 @@ function toggleDone(e, i) {
   if (
     !row.d &&
     e.type === "sets" &&
-    (!(DDXStore.num(row.w) >= 0) ||
+    (!Number.isFinite(DDXStore.num(row.w)) ||
+      !(DDXStore.num(row.w) >= 0) ||
       !(DDXStore.num(row.r) > 0) ||
       !Number.isInteger(DDXStore.num(row.r)))
   ) {
@@ -620,8 +500,8 @@ function toggleDone(e, i) {
   const all = st.rows.every((r) => r.d);
   if (row.d && e.type === "sets") {
     if (isWu(e, i)) {
-      if (row.e) applyCal(e);
-      else toast("ОТМЕТЬ «КАК ДАЛОСЬ» У ПРОБНОГО, И Я ПОДСТАВЛЮ РАБОЧИЙ ВЕС");
+      renderCal(e);
+      if (!row.e) toast("Укажи сложность пробы, чтобы получить рекомендацию.");
     } else if (!row.e) {
       toast("ПОСТАВЬ «КАК ДАЛОСЬ»: БЕЗ ЭТОГО ПОДХОД НЕ ПОПАДЁТ В РАЗБОР");
     }
@@ -744,7 +624,7 @@ function buildReport() {
     `${KIND.toUpperCase()} — ОТЧЁТ`,
     `Дата: ${d.toLocaleDateString("ru-RU")} ${d.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })}`,
     `Время: ${fmtT(el)} · Рабочих подходов: ${x.work} · «кое как»: ${x.kk} · Замен: ${x.rep}`,
-    `Контекст: в каждом упражнении 1 пробный + 3 рабочих, вес подобран по пробному; цель: запас 2 повтора`,
+    `Контекст: пробные подходы исключены из рабочего объёма; фактическое число рабочих подходов указано ниже; цель: запас 2 повтора`,
     ``,
   ];
   EX.forEach((e) => {

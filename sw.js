@@ -1,5 +1,7 @@
-const CACHE = "guts-rage-v5-production-1-catalog-4";
+const CACHE = "guts-rage-v5-production-1-catalog-5";
 const ASSETS = [
+  "./weight-calibration.js",
+  "./bloodstorm.js",
   "./workout-analysis.js",
   "./seed-workout.js",
   "./catalog.js",

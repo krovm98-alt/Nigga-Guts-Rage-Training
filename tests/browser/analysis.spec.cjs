@@ -9,10 +9,10 @@ test("animated header and local analysis work at 320px, reduced motion, restore 
   await expect(page.locator(".blood-drips")).toHaveCount(2);
   expect(
     await page
-      .locator(".blood-drips")
+      .locator(".viscous-drip")
       .first()
       .evaluate((e) => getComputedStyle(e).animationName),
-  ).toBe("blood-seep");
+  ).toBe("viscous-flow");
   expect(
     await page.evaluate(
       () => document.documentElement.scrollWidth <= innerWidth,
@@ -21,7 +21,7 @@ test("animated header and local analysis work at 320px, reduced motion, restore 
   await page.emulateMedia({ reducedMotion: "reduce" });
   expect(
     await page
-      .locator(".blood-drips")
+      .locator(".viscous-drip")
       .first()
       .evaluate((e) => getComputedStyle(e).animationName),
   ).toBe("none");

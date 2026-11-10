@@ -17,24 +17,25 @@ test("explicit confirmation, cancellation, completed rows and manual edits survi
   await page.getByText("Выбрать: Жим лёжа в Смите", { exact: true }).click();
   await expect(page.locator("#ex-dbbench h3")).toHaveText("Жим лёжа в Смите");
   await page.locator("#ex-dbbench .ex-head").click();
-  const rows = page.locator("#ex-dbbench input.iw"),
-    apply = page.getByRole("button", { name: "Применить рекомендованный вес" });
+  const rows = page.locator("#ex-dbbench input.iw");
   await expect(rows.nth(1)).toHaveValue("");
+  await rows.nth(0).fill("30");
+  await page.locator("#ex-dbbench .eff").nth(1).click();
+  await page.locator("#ex-dbbench button.ok").nth(0).click();
+  const apply = page
+    .locator("#ex-dbbench")
+    .getByRole("button", { name: "Применить рабочий вес", exact: true });
   page.once("dialog", (d) => d.dismiss());
   await apply.click();
   await expect(rows.nth(1)).toHaveValue("");
-  await rows.nth(0).fill("10");
-  await rows.nth(1).fill("42,5");
-  await page.locator("#ex-dbbench button.ok").nth(1).click();
   page.once("dialog", (d) => d.accept());
   await apply.click();
-  await expect(rows.nth(0)).toHaveValue("10");
-  await expect(rows.nth(1)).toHaveValue("42,5");
-  await expect(rows.nth(2)).toHaveValue("50");
+  await expect(rows.nth(1)).toHaveValue("50");
+  await expect(rows.nth(0)).toHaveValue("30");
   await rows.nth(2).fill("47,5");
   await page.reload();
   expect(await page.evaluate(() => S.ex.dbbench.rows[2].w)).toBe("47,5");
-  expect(await page.evaluate(() => S.ex.dbbench.weightApplication.weight)).toBe(
+  expect(await page.evaluate(() => S.ex.dbbench.calibration.work.weight)).toBe(
     50,
   );
 });

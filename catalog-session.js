@@ -233,80 +233,123 @@ function catalogControls(e, d) {
   }
 }
 
-function renderWeightRecommendation(e, d) {
-  let box = d.querySelector(".weight-recommendation");
-  if (!box) {
-    box = document.createElement("section");
-    box.className = "weight-recommendation last";
-    d.querySelector(".ex-body").prepend(box);
+function calibrationFor(e) {
+  const replacement = repName(e),
+    st = S.ex[e.id];
+  const id = DDXCatalog.identity({
+    id: e.id,
+    exerciseId: replacement ? null : e.exerciseId,
+    replacement,
+  });
+  let history;
+  try {
+    history = DDXStore.history();
+  } catch {
+    history = undefined;
   }
+  return WeightCalibration.evaluate(id, st, history);
+}
+function renderWeightRecommendation(e, d) {
+  if (!d || e.type !== "sets") return;
+  const box = d.querySelector(".cal");
+  if (!box) return;
+  box.classList.add("weight-recommendation");
   box.replaceChildren();
   const st = S.ex[e.id],
-    x = DDXCatalog.get(e.exerciseId),
-    rec = DDXCatalog.reliable(x.id, st);
-  const info = document.createElement("p");
-  info.textContent = DDXCatalog.summary(x, st);
-  const warning = document.createElement("p");
-  warning.textContent =
-    "Рекомендованный вес не является обязательным. Выбери посильную нагрузку.";
-  const advice = document.createElement("p");
-  advice.textContent =
-    "Рекомендация по прогрессии: " +
-    (DDXProgress.recommend(e, st)?.text ||
-      "Следующая цель из журнала — справочная; повышение не применяется автоматически.");
-  box.append(info, advice, warning);
-  if (rec.weight === null) {
-    const manual = document.createElement("p");
-    manual.textContent = "Укажи рабочий вес вручную";
-    box.append(manual);
-    return;
+    result = calibrationFor(e);
+  function text(tag, value) {
+    const el = document.createElement(tag);
+    el.textContent = value;
+    box.append(el);
   }
-  const apply = document.createElement("button");
-  apply.textContent = "Применить рекомендованный вес";
-  apply.onclick = () => {
-    const fresh = DDXCatalog.reliable(x.id, st);
-    if (localStorage.getItem(KEY) !== persisted) {
-      toast("Сессия изменена в другой вкладке. Обнови страницу.");
-      return;
-    }
-    if (
-      fresh.weight === null ||
-      fresh.weight !== rec.weight ||
-      fresh.last?.s.id !== rec.last?.s.id ||
-      fresh.last?.s.start !== rec.last?.s.start
-    ) {
-      renderWeightRecommendation(e, d);
-      toast("Рекомендация обновилась. Проверь данные.");
-      return;
-    }
-    if (
-      !confirm(
-        "Применить " +
-          fresh.weight +
-          " кг только к незавершённым рабочим подходам? Вес не является обязательным.",
+  text("b", "Пробный подход");
+  text(
+    "p",
+    result.trial.weight === null
+      ? "Вес требует уточнения"
+      : `${result.trial.weight} кг × ${result.trial.reps}. ${result.trial.reason}`,
+  );
+  text(
+    "p",
+    `${result.unit}. Источник: ${result.source}. Последний достоверный рабочий вес: ${result.base === null ? "не определён" : result.base + " кг"}.`,
+  );
+  const old = st.calibration?.work;
+  if (old && old.signature !== result.signature)
+    text(
+      "p",
+      "Предыдущая рекомендация устарела. Предложение пересчитано; введённые веса сохранены.",
+    );
+  function button(label, kind) {
+    const b = document.createElement("button");
+    b.textContent = label;
+    b.onclick = () => {
+      if (localStorage.getItem(KEY) !== persisted) {
+        toast("Сессия изменена в другой вкладке. Обнови страницу.");
+        return;
+      }
+      const fresh = calibrationFor(e);
+      if (fresh.signature !== result.signature) {
+        renderCal(e);
+        toast("Рекомендация обновилась. Проверь данные.");
+        return;
+      }
+      if (
+        !confirm(
+          kind === "trial"
+            ? "Подставить только пробный вес? Рабочие подходы останутся без изменений."
+            : "Применить рабочий вес только к незавершённым подходам без ручных правок? Нагрузка не обязательна.",
+        )
       )
-    )
-      return;
-    st.rows.forEach((r, i) => {
-      if (i > 0 && !r.d) r.w = String(fresh.weight);
-    });
-    st.weightApplication = {
-      exerciseId: x.id,
-      weight: fresh.weight,
-      source: fresh.source,
-      sessionId: fresh.last?.s.id || null,
-      appliedAt: Date.now(),
+        return;
+      if (
+        localStorage.getItem(KEY) !== persisted ||
+        calibrationFor(e).signature !== fresh.signature
+      ) {
+        toast(
+          "Данные изменились во время подтверждения. Проверь рекомендацию.",
+        );
+        renderCal(e);
+        return;
+      }
+      if (WeightCalibration.apply(st, fresh, kind)) {
+        save();
+        renderRows(e);
+        renderCal(e);
+      }
     };
-    save();
-    renderRows(e);
-  };
-  box.append(apply);
+    box.append(b);
+  }
+  if (result.trial.weight !== null && !st.rows[0].d)
+    button("Применить пробный вес", "trial");
+  text("b", "Рекомендованный рабочий вес");
+  text(
+    "p",
+    result.work.weight === null
+      ? "Укажи рабочий вес вручную или уточни пробу."
+      : `${result.work.weight} кг · ${result.work.sets} рабочих подхода × ${result.work.reps} повторений`,
+  );
+  text("p", result.work.reason);
+  if (result.work.weight !== null && result.source.startsWith("Последняя")) {
+    const advice = DDXProgress.recommend(
+      { exerciseId: result.exerciseId, workR: result.work.reps },
+      { ...st, alt: -1, custom: "" },
+    );
+    if (advice)
+      text("p", "Отдельная рекомендация по прогрессии: " + advice.text);
+  }
+  text(
+    "p",
+    `Уверенность: ${result.work.confidence}. Вес не является обязательным.`,
+  );
+  if (
+    result.work.weight !== null &&
+    st.rows.slice(1).some((r) => !r.d && !r.manualWeight)
+  )
+    button("Применить рабочий вес", "work");
 }
 function refreshWeightRecommendations() {
-  for (const e of EX.filter((e) => e.catalog)) {
-    const d = document.getElementById("ex-" + e.id);
-    if (d) renderWeightRecommendation(e, d);
-  }
+  for (const e of EX.filter((e) => e.type === "sets"))
+    renderWeightRecommendation(e, document.getElementById("ex-" + e.id));
 }
 window.addEventListener("storage", (ev) => {
   if (ev.key === DDXStore.HKEY) refreshWeightRecommendations();
