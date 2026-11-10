@@ -582,3 +582,50 @@ header::before {
 .go-home:hover {
   border-color: #b51e2c;
 }
+.catalog-dialog {
+  width: min(94vw, 620px);
+  max-height: 90dvh;
+  overflow: auto;
+  background: #20252c;
+  color: #eee;
+  border: 2px solid #9c2635;
+  border-radius: 12px;
+  padding: 16px;
+  box-sizing: border-box;
+}
+.catalog-dialog::backdrop {
+  background: #000b;
+}
+.catalog-dialog input,
+.catalog-dialog select {
+  box-sizing: border-box;
+  max-width: 100%;
+  width: 100%;
+  font: inherit;
+  padding: 12px;
+  margin: 8px 0;
+  background: #303640;
+  color: #fff;
+}
+.catalog-dialog article {
+  border-top: 1px solid #657080;
+  padding: 12px 0;
+  overflow-wrap: anywhere;
+}
+.catalog-dialog button,
+.ex-body > button,
+#list > button {
+  min-height: 44px;
+  max-width: 100%;
+  white-space: normal;
+  margin: 6px 0;
+  padding: 10px;
+  font: inherit;
+  background: #38242b;
+  color: #fff;
+  border: 1px solid #a83243;
+  border-radius: 6px;
+}
+.catalog-dialog h4 {
+  margin: 8px 0;
+}
