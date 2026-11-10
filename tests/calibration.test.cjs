@@ -115,3 +115,33 @@ test("unknown and uncertain catalog weights stay manual; all catalog entries are
   assert.equal(r.source, "Подтверждённый исходный ориентир");
   assert.equal(r.work.weight, null);
 });
+
+test("hard final set keeps a conservative trial hint without enabling working load", () => {
+  const c = setup(), h = history();
+  h[0].exercises[0].rows[3].e = 4;
+  const result = c.WeightCalibration.evaluate("db_bench", state(), h);
+  assert.equal(result.trial.weight, 12);
+  assert.equal(result.trial.reps, 8);
+  assert.equal(result.work.weight, null);
+});
+test("unstable dip history still suggests a cautious trial without trusting 106.5 kg", () => {
+  const c = setup(), h = history();
+  h[0].exercises[0] = {
+    id: "dip", exerciseId: "dip_machine", name: "Дип-тренажёр",
+    rows: [row(79, 8, 3), row(106.5, 8, 4), row(106.5, 7, 6), row(79, 8, 6)],
+  };
+  const result = c.WeightCalibration.evaluate("dip_machine", state(), h);
+  assert.equal(result.trial.weight, 60);
+  assert.equal(result.work.weight, null);
+});
+test("unknown exercise or current pain must not suggest trial weights", () => {
+  const c = setup();
+  assert.equal(c.WeightCalibration.evaluate("unknown", state(), []).trial.weight, null);
+  const st = state(); st.n = "боль";
+  assert.equal(c.WeightCalibration.evaluate("db_bench", st, history()).trial.weight, null);
+});
+test("do not suggest a trial heavier than the smallest completed recent load", () => {
+  const c = setup(), h = history();
+  h[0].exercises[0].rows[3].w = "10";
+  assert.equal(c.WeightCalibration.evaluate("db_bench", state(), h).trial.weight, null);
+});
