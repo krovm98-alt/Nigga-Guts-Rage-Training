@@ -85,55 +85,85 @@
       ]);
       return result;
     };
-    if (!x || reliable.weight === null || !Number.isFinite(reliable.weight))
-      return finish();
-    const previous = reliable.last?.e.rows[0];
+    // A cautious trial hint is independent of whether a *working* load is reliable.
+    // Never turn a trial hint into an automatic working-load recommendation.
+    const hint = hints[exerciseId];
+    const unsafeCurrent =
+      state.side ||
+      state.skip ||
+      state.custom ||
+      (state.alt != null && state.alt >= 0) ||
+      /(боль|болит|дискомфорт|чувствуется)/i.test(
+        [state.n, ...(state.t || []), ...(state.why || [])].join(" "),
+      ) ||
+      exerciseId === "lateral_delt_machine";
+    if (!x || unsafeCurrent) return finish();
+
+    // Do not suggest a trial load above weights actually completed in the
+    // latest session, even if that session was unsuitable for progression.
+    const recent = reliable.last?.e;
+    const completedWeights = (recent?.rows || [])
+      .slice(1)
+      .filter((r) => r.d && Number.isFinite(number(r.w)) && number(r.w) > 0)
+      .map((r) => number(r.w));
+    const cap = completedWeights.length
+      ? Math.min(...completedWeights)
+      : Number.isFinite(reliable.weight) && reliable.weight > 0
+        ? reliable.weight
+        : null;
     const validTrial = (r) =>
       r &&
       r.d &&
       Number.isFinite(number(r.w)) &&
       number(r.w) > 0 &&
-      number(r.w) <= reliable.weight &&
+      (cap === null || number(r.w) <= cap) &&
       Number.isInteger(number(r.r)) &&
       number(r.r) > 0 &&
       r.e >= 1 &&
       r.e <= 3;
-    let trial = validTrial(previous) ? previous : null;
+    let trial = validTrial(recent?.rows?.[0]) ? recent.rows[0] : null;
     if (!trial && Array.isArray(history)) {
-      // Older successful trials are labelled with their source and checked against
-      // their own complete work sets and the current confirmed working load.
-      for (const s of history
-        .filter((s) => s.start < (reliable.last?.s.start || Infinity))
+      // A historical probe is useful only for the same canonical exercise
+      // and unit, and must not exceed the current conservative cap.
+      for (const session of history
+        .filter((session) => session.start < (reliable.last?.s.start || Infinity))
         .slice()
         .sort((a, b) => b.start - a.start)) {
-        const r = DDXCatalog.reliable(exerciseId, {}, [s]);
-        if (
-          r.last &&
-          r.weight !== null &&
-          r.weight === reliable.weight &&
-          validTrial(r.last.e.rows[0])
-        ) {
-          trial = r.last.e.rows[0];
+        const candidate = session.exercises?.find(
+          (e) => DDXCatalog.identity(e) === exerciseId &&
+            !e.skipped &&
+            !e.side &&
+            (!e.unit || e.unit === x.unit) &&
+            (!e.equipment || e.equipment === x.equipment),
+        );
+        if (candidate && validTrial(candidate.rows?.[0])) {
+          trial = candidate.rows[0];
           result.source +=
-            "; проба от " + new Date(s.start).toLocaleDateString("ru-RU");
+            "; проба от " + new Date(session.start).toLocaleDateString("ru-RU");
           break;
         }
       }
     }
-    const hint = hints[exerciseId];
     if (trial)
       result.trial = {
         weight: number(trial.w),
         reps: number(trial.r),
-        reason: "Успешная проба при совместимой рабочей нагрузке",
+        reason: "Ранее выполненная совместимая лёгкая проба; рабочий вес оценивается отдельно",
       };
-    else if (hint && hint[0] <= reliable.weight)
+    else if (
+      hint &&
+      (cap === null || hint[0] <= cap) &&
+      Number.isFinite(hint[0]) &&
+      hint[0] > 0
+    )
       result.trial = {
         weight: hint[0],
         reps: hint[1],
-        reason:
-          "Осторожный предварительный ориентир из плана, не прогноз результата",
+        reason: "Предварительный ориентир пробного подхода; рабочий вес не подтверждён",
       };
+
+    if (reliable.weight === null || !Number.isFinite(reliable.weight))
+      return finish();
     result.work.reason =
       "Выполни пробный подход и укажи фактические вес, повторы и сложность.";
     if (!actual?.d) return finish();
