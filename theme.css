@@ -258,3 +258,34 @@ a {
 .row:not(.hd):not(.done):not(:has(~ .row.done)) {
   scroll-margin-bottom: 160px;
 }
+/* Offline blood accents stay behind the brand text, outside working cards. */
+.blood-brand {
+  position: relative;
+  isolation: isolate;
+  text-shadow:
+    0 2px 1px #090a0c,
+    0 4px 16px #9d172b;
+  overflow-wrap: anywhere;
+  padding-bottom: 22px;
+}
+.blood-brand::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  pointer-events: none;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 22px;
+  background:
+    radial-gradient(ellipse at 13% 0, #a52136 0 12%, transparent 13%),
+    radial-gradient(ellipse at 61% 0, #731322 0 9%, transparent 10%),
+    linear-gradient(90deg, #51101d, #c02d40 45%, #41101a);
+  background-size:
+    100% 100%,
+    100% 100%,
+    100% 4px;
+  background-repeat: no-repeat;
+  border-radius: 0 0 70% 25%;
+  opacity: 0.85;
+}

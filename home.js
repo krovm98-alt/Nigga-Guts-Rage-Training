@@ -53,13 +53,15 @@ function show() {
       " мин · отказов: " +
       (x.stats?.kk || 0);
     const pre = document.createElement("pre");
-    pre.textContent = x.report || "";
+    pre.textContent = DDXStore.displayText(x.report || "");
     const b = document.createElement("button");
     b.className = "secondary";
     b.textContent = "КОПИРОВАТЬ ОТЧЁТ";
     b.onclick = async () => {
       try {
-        await navigator.clipboard.writeText(x.report || "");
+        await navigator.clipboard.writeText(
+          DDXStore.displayText(x.report || ""),
+        );
         b.textContent = "СКОПИРОВАНО";
       } catch {
         alert("Выдели и скопируй текст отчёта вручную");
@@ -93,7 +95,8 @@ el("export").onclick = () => {
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = "ddx-backup-" + new Date().toISOString().slice(0, 10) + ".json";
+  a.download =
+    "training-backup-" + new Date().toISOString().slice(0, 10) + ".json";
   document.body.append(a);
   a.click();
   a.remove();

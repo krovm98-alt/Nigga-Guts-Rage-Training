@@ -1,4 +1,10 @@
 const { test, expect } = require("@playwright/test");
+// Existing workflow fixtures isolate new sessions from the one-time historical import.
+test.beforeEach(async ({ context }) => {
+  await context.addInitScript(() =>
+    localStorage.setItem("ddx_seed_second_month_v1", '{"version":1}'),
+  );
+});
 test("all mobile screens load without JS errors, split and Pages assets work", async ({
   page,
 }) => {
@@ -79,13 +85,11 @@ test("custom replacement is text, not HTML", async ({ page }) => {
 });
 test("invalid import preserves history and gives error", async ({ page }) => {
   await page.goto("index.html");
-  await page
-    .locator("#import")
-    .setInputFiles({
-      name: "bad.json",
-      mimeType: "application/json",
-      buffer: Buffer.from("{"),
-    });
+  await page.locator("#import").setInputFiles({
+    name: "bad.json",
+    mimeType: "application/json",
+    buffer: Buffer.from("{"),
+  });
   await expect(page.locator("#importStatus")).toContainText("Ошибка");
   expect(
     await page.evaluate(() => localStorage.getItem("ddx_history_v1")),

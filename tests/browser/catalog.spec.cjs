@@ -1,4 +1,10 @@
 const { test, expect } = require("@playwright/test");
+// Existing workflow fixtures isolate new sessions from the one-time historical import.
+test.beforeEach(async ({ context }) => {
+  await context.addInitScript(() =>
+    localStorage.setItem("ddx_seed_second_month_v1", '{"version":1}'),
+  );
+});
 async function replace(page) {
   await page.goto("push.html");
   await page.locator("#ex-dbbench .ex-head").click();
