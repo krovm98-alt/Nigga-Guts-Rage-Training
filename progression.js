@@ -2,6 +2,32 @@
   "use strict";
   const { num, history, workRows } = DDXStore;
   function recommend(e, st = {}) {
+    const catalogId = window.DDXCatalog?.identity(e);
+    if (window.DDXCatalog?.get(catalogId)) {
+      const rec = DDXCatalog.reliable(catalogId, st);
+      if (!rec.last)
+        return { text: rec.reason + ". Следующая цель DDX справочная." };
+      if (rec.weight === null)
+        return {
+          text: rec.reason + ". Укажи нагрузку вручную; повышение отключено.",
+        };
+      const ceiling = e.workR >= 12 ? 12 : 10;
+      if (rec.reps < 8)
+        return {
+          weight: rec.weight,
+          reps: rec.reps,
+          text: "Сохрани посильные повторы без повышения.",
+        };
+      return rec.reps >= ceiling
+        ? {
+            text: "Достигнут верх диапазона. Можно рассмотреть минимальный доступный шаг оборудования; новый вес введи вручную.",
+          }
+        : {
+            weight: rec.weight,
+            reps: rec.reps + 1,
+            text: `Сохрани ${rec.weight} кг; следующий шаг — ${rec.reps + 1} повторений при подходящем самочувствии.`,
+          };
+    }
     let saved;
     try {
       saved = history();

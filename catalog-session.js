@@ -23,7 +23,7 @@ function catalogDescriptor(card, st) {
     block: x.group,
     type: "sets",
     meta: x.unit,
-    last: escape(DDXCatalog.summary(x)),
+    last: "",
     tech: x.warning,
     tags: [],
     alts: [],
@@ -167,25 +167,10 @@ function selectCatalog(target, x, n) {
   }
   if (target && S.ex[target.id].rows.some((r) => r.d)) return;
   const id = target?.id || "extra_" + crypto.randomUUID();
-  let weight = x.weight,
-    reps = x.reps,
-    side = false;
-  try {
-    const last = DDXCatalog.latest(x.id);
-    if (last) {
-      const r = DDXStore.workRows(last.e).at(-1);
-      weight = r.w;
-      reps = r.r;
-      side = !!last.e.side;
-    }
-  } catch (e) {
-    toast(e.message);
-    return;
-  }
   S.ex[id] = {
     rows: Array.from({ length: n + 1 }, (_, i) => ({
-      w: i === 0 ? "" : weight === null ? "" : String(weight),
-      r: String(reps),
+      w: "",
+      r: String(x.reps),
       e: 0,
       d: false,
     })),
@@ -195,7 +180,7 @@ function selectCatalog(target, x, n) {
     alt: -1,
     custom: "",
     why: [],
-    side,
+    side: false,
   };
   const cards = layoutCards(),
     card = {
@@ -214,6 +199,7 @@ function catalogControls(e, d) {
   b.textContent = "Заменить упражнение";
   b.onclick = () => openCatalog(e);
   d.querySelector(".ex-body").prepend(b);
+  if (e.catalog) renderWeightRecommendation(e, d);
   if (e.added) {
     for (const [text, delta] of [
       ["Переместить выше", -1],
@@ -246,3 +232,83 @@ function catalogControls(e, d) {
     d.querySelector(".ex-body").append(remove);
   }
 }
+
+function renderWeightRecommendation(e, d) {
+  let box = d.querySelector(".weight-recommendation");
+  if (!box) {
+    box = document.createElement("section");
+    box.className = "weight-recommendation last";
+    d.querySelector(".ex-body").prepend(box);
+  }
+  box.replaceChildren();
+  const st = S.ex[e.id],
+    x = DDXCatalog.get(e.exerciseId),
+    rec = DDXCatalog.reliable(x.id, st);
+  const info = document.createElement("p");
+  info.textContent = DDXCatalog.summary(x, st);
+  const warning = document.createElement("p");
+  warning.textContent =
+    "Рекомендованный вес не является обязательным. Выбери посильную нагрузку.";
+  const advice = document.createElement("p");
+  advice.textContent =
+    "Рекомендация по прогрессии: " +
+    (DDXProgress.recommend(e, st)?.text ||
+      "Следующая цель DDX — справочная; повышение не применяется автоматически.");
+  box.append(info, advice, warning);
+  if (rec.weight === null) {
+    const manual = document.createElement("p");
+    manual.textContent = "Укажи рабочий вес вручную";
+    box.append(manual);
+    return;
+  }
+  const apply = document.createElement("button");
+  apply.textContent = "Применить рекомендованный вес";
+  apply.onclick = () => {
+    const fresh = DDXCatalog.reliable(x.id, st);
+    if (localStorage.getItem(KEY) !== persisted) {
+      toast("Сессия изменена в другой вкладке. Обнови страницу.");
+      return;
+    }
+    if (
+      fresh.weight === null ||
+      fresh.weight !== rec.weight ||
+      fresh.last?.s.id !== rec.last?.s.id ||
+      fresh.last?.s.start !== rec.last?.s.start
+    ) {
+      renderWeightRecommendation(e, d);
+      toast("Рекомендация обновилась. Проверь данные.");
+      return;
+    }
+    if (
+      !confirm(
+        "Применить " +
+          fresh.weight +
+          " кг только к незавершённым рабочим подходам? Вес не является обязательным.",
+      )
+    )
+      return;
+    st.rows.forEach((r, i) => {
+      if (i > 0 && !r.d) r.w = String(fresh.weight);
+    });
+    st.weightApplication = {
+      exerciseId: x.id,
+      weight: fresh.weight,
+      source: fresh.source,
+      sessionId: fresh.last?.s.id || null,
+      appliedAt: Date.now(),
+    };
+    save();
+    renderRows(e);
+  };
+  box.append(apply);
+}
+function refreshWeightRecommendations() {
+  for (const e of EX.filter((e) => e.catalog)) {
+    const d = document.getElementById("ex-" + e.id);
+    if (d) renderWeightRecommendation(e, d);
+  }
+}
+window.addEventListener("storage", (ev) => {
+  if (ev.key === DDXStore.HKEY) refreshWeightRecommendations();
+});
+window.addEventListener("focus", refreshWeightRecommendations);

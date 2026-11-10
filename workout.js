@@ -74,6 +74,7 @@ function save() {
     const value = JSON.stringify(S);
     localStorage.setItem(KEY, value);
     persisted = value;
+    queueMicrotask(refreshWeightRecommendations);
     const status = document.getElementById("saveStatus");
     if (status)
       status.textContent =
@@ -213,6 +214,11 @@ function renderCal(e) {
     tr = curTrial(e),
     n = st.rows.length - 1;
   let h = "<b>ПОДБОР ВЕСА</b>";
+  if (e.catalog) {
+    box.textContent =
+      "Пробный вес выбери самостоятельно. Рабочий вес можно ввести вручную или применить после подтверждения.";
+    return;
+  }
   if (!isGeneric(e)) {
     h +=
       `<div>Пробный подход: <b style="color:var(--acc)">${tr.w} кг × ${tr.r}</b>. Как далось, такой рабочий вес на ${n}×${e.workR}:</div>` +
@@ -456,7 +462,7 @@ EX.forEach((e) => {
   refresh(e);
   renderCal(e);
   updRep(e);
-  if (e.type === "sets") {
+  if (e.type === "sets" && !e.catalog) {
     const advice = window.DDXProgress?.recommend(e, st);
     if (advice) {
       const box = document.createElement("div");

@@ -128,6 +128,7 @@
           (r, i) =>
             i > 0 &&
             r.d &&
+            Number.isFinite(num(r.w)) &&
             num(r.w) >= 0 &&
             num(r.r) > 0 &&
             Number.isInteger(num(r.r)),
