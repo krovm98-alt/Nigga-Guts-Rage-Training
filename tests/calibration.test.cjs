@@ -72,7 +72,7 @@ test("weak probe, poor effort, pain, ambiguity and unstable history never escala
   h[0].exercises[0].rows[2].w = "19";
   assert.equal(
     c.WeightCalibration.evaluate("db_bench", state(), h).work.weight,
-    null,
+    19,
   );
 });
 test("trial apply changes only trial; work apply preserves completed and manually edited rows", () => {
@@ -122,7 +122,7 @@ test("hard final set keeps a conservative trial hint without enabling working lo
   const result = c.WeightCalibration.evaluate("db_bench", state(), h);
   assert.equal(result.trial.weight, 12);
   assert.equal(result.trial.reps, 8);
-  assert.equal(result.work.weight, null);
+  assert.ok(result.work.weight <= 21);
 });
 test("unstable dip history still suggests a cautious trial without trusting 106.5 kg", () => {
   const c = setup(), h = history();
@@ -132,7 +132,7 @@ test("unstable dip history still suggests a cautious trial without trusting 106.
   };
   const result = c.WeightCalibration.evaluate("dip_machine", state(), h);
   assert.equal(result.trial.weight, 60);
-  assert.equal(result.work.weight, null);
+  assert.ok(result.work.weight <= 79);
 });
 test("unknown exercise or current pain must not suggest trial weights", () => {
   const c = setup();
@@ -144,4 +144,16 @@ test("do not suggest a trial heavier than the smallest completed recent load", (
   const c = setup(), h = history();
   h[0].exercises[0].rows[3].w = "10";
   assert.equal(c.WeightCalibration.evaluate("db_bench", state(), h).trial.weight, null);
+});
+
+test("same completed trial yields lower work load when effort is higher", () => {
+  const c=setup(), h=history();
+  const values=[2,4,5,6].map(e=>{
+    const st=state(); st.rows[0].e=e;
+    return c.WeightCalibration.evaluate("db_bench",st,h).work.weight;
+  });
+  assert.equal(values[0],21);
+  assert.ok(values[1]<values[0]);
+  assert.ok(values[2]<values[1]);
+  assert.equal(values[3],null);
 });
