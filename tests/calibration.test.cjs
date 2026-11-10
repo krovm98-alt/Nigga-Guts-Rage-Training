@@ -112,7 +112,7 @@ test("unknown and uncertain catalog weights stay manual; all catalog entries are
     );
   const s = state(),
     r = c.WeightCalibration.evaluate("smith_bench", s, []);
-  assert.equal(r.source, "Подтверждённый исходный ориентир");
+  assert.equal(r.source, "Исходный ориентир");
   assert.equal(r.work.weight, null);
 });
 
