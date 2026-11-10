@@ -258,34 +258,152 @@ a {
 .row:not(.hd):not(.done):not(:has(~ .row.done)) {
   scroll-margin-bottom: 160px;
 }
-/* Offline blood accents stay behind the brand text, outside working cards. */
+/* Decorative motion is confined to the homepage brand. */
 .blood-brand {
   position: relative;
   isolation: isolate;
-  text-shadow:
-    0 2px 1px #090a0c,
-    0 4px 16px #9d172b;
   overflow-wrap: anywhere;
-  padding-bottom: 22px;
+  padding: 6px 0 28px;
+  text-shadow: 0 3px 12px #6e1022;
 }
-.blood-brand::after {
-  content: "";
+.blood-line {
+  position: relative;
+  display: inline-block;
+  margin-bottom: 13px;
+  color: #f3e9ea;
+  text-shadow: 0 2px 2px #58101e;
+}
+.blood-drips {
   position: absolute;
-  z-index: -1;
   pointer-events: none;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: 22px;
-  background:
-    radial-gradient(ellipse at 13% 0, #a52136 0 12%, transparent 13%),
-    radial-gradient(ellipse at 61% 0, #731322 0 9%, transparent 10%),
-    linear-gradient(90deg, #51101d, #c02d40 45%, #41101a);
-  background-size:
-    100% 100%,
-    100% 100%,
-    100% 4px;
-  background-repeat: no-repeat;
-  border-radius: 0 0 70% 25%;
-  opacity: 0.85;
+  left: 3%;
+  right: 3%;
+  top: 92%;
+  height: 24px;
+  z-index: -1;
+  transform-origin: top;
+  background: linear-gradient(#a91932, #5e0c1c);
+  clip-path: polygon(
+    0 0,
+    100% 0,
+    100% 10%,
+    91% 13%,
+    90% 55%,
+    89% 67%,
+    87% 60%,
+    86% 12%,
+    72% 12%,
+    71% 85%,
+    70% 100%,
+    68% 85%,
+    67% 12%,
+    49% 14%,
+    48% 40%,
+    46% 50%,
+    44% 12%,
+    23% 15%,
+    22% 70%,
+    20% 80%,
+    18% 65%,
+    17% 12%,
+    3% 12%,
+    2% 35%,
+    0 20%
+  );
+  animation: blood-seep 7s ease-in-out infinite alternate;
+}
+.blood-line:last-of-type .blood-drips {
+  animation-delay: -3s;
+}
+@keyframes blood-seep {
+  from {
+    transform: scaleY(0.72);
+    opacity: 0.85;
+  }
+  to {
+    transform: scaleY(1);
+    opacity: 1;
+  }
+}
+.header-lightning {
+  position: absolute;
+  inset: -4px 0;
+  z-index: -2;
+  pointer-events: none;
+  opacity: 0;
+  background: linear-gradient(
+    130deg,
+    transparent 34%,
+    #b1c8dc 35%,
+    #e6f1fc 36%,
+    transparent 38%,
+    transparent 64%,
+    #ac2645 65%,
+    transparent 67%
+  );
+  clip-path: polygon(
+    12% 0,
+    25% 0,
+    44% 28%,
+    36% 30%,
+    61% 66%,
+    51% 63%,
+    79% 100%,
+    62% 100%,
+    35% 58%,
+    45% 61%,
+    20% 24%,
+    28% 22%
+  );
+  animation: header-storm 17s linear infinite;
+}
+@keyframes header-storm {
+  0%,
+  92%,
+  95%,
+  100% {
+    opacity: 0;
+  }
+  93% {
+    opacity: 0.55;
+  }
+  94% {
+    opacity: 0.12;
+  }
+}
+.workout-analysis {
+  margin: 14px 0;
+  padding: 12px;
+  border: 1px solid #713340;
+  border-radius: 10px;
+  background: #20252c;
+  overflow-wrap: anywhere;
+}
+.workout-analysis summary {
+  min-height: 44px;
+  cursor: pointer;
+  color: #f0d7db;
+}
+.workout-analysis h3 {
+  font-size: 1rem;
+  margin: 16px 0 8px;
+}
+.workout-analysis ul {
+  padding-left: 20px;
+}
+.workout-analysis li {
+  margin: 8px 0;
+  line-height: 1.5;
+}
+@media (prefers-reduced-motion: reduce) {
+  .blood-drips,
+  .header-lightning {
+    animation: none;
+  }
+  .blood-drips {
+    transform: none;
+  }
+  .header-lightning {
+    opacity: 0.12;
+  }
 }

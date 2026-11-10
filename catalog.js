@@ -517,15 +517,15 @@
       );
     return legacy[e.id] || (get(e.id) ? e.id : "legacy:" + e.id);
   }
-  function latest(id) {
-    return DDXStore.history()
+  function latest(id, records = DDXStore.history()) {
+    return records
       .slice()
       .sort((a, b) => b.start - a.start)
       .flatMap((s) =>
         s.exercises.filter((e) => identity(e) === id).map((e) => ({ s, e })),
       )[0];
   }
-  function reliable(id, st = {}) {
+  function reliable(id, st = {}, records) {
     const x = get(id);
     if (!x)
       return {
@@ -534,7 +534,7 @@
       };
     let last;
     try {
-      last = latest(id);
+      last = records ? latest(id, records) : latest(id);
     } catch {
       return {
         weight: null,

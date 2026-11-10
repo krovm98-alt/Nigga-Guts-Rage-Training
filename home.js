@@ -70,7 +70,14 @@ function show() {
     const edit = document.createElement("button");
     edit.textContent = "ИЗМЕНИТЬ ПОДХОДЫ";
     edit.onclick = () => editSession(x);
-    d.append(sum, info, pre, b, edit);
+    d.append(
+      sum,
+      info,
+      renderWorkoutAnalysis(WorkoutAnalysis.analyzeWorkout(x, h)),
+      pre,
+      b,
+      edit,
+    );
     root.append(d);
   }
 }
@@ -264,4 +271,30 @@ function editSession(original) {
   };
   el("history").prepend(form);
   form.scrollIntoView();
+}
+
+function renderWorkoutAnalysis(result) {
+  const box = document.createElement("details");
+  box.className = "workout-analysis";
+  const heading = document.createElement("summary");
+  heading.textContent = "Краткий анализ · " + result.summary;
+  const source = document.createElement("small");
+  source.textContent = "Локальный разбор по правилам · без внешней нейросети";
+  box.append(heading, source);
+  for (const [title, lines] of [
+    ["Что хорошо", result.good],
+    ["На что обратить внимание", result.attention],
+    ["Что делать дальше", result.next],
+  ]) {
+    const h = document.createElement("h3");
+    h.textContent = title;
+    const ul = document.createElement("ul");
+    for (const line of lines) {
+      const li = document.createElement("li");
+      li.textContent = DDXStore.displayText(line);
+      ul.append(li);
+    }
+    box.append(h, ul);
+  }
+  return box;
 }
