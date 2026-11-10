@@ -11,7 +11,13 @@ for (const s of hist) {
   if (!Array.isArray(s.exercises)) continue;
   for (const e of s.exercises) {
     if (e.skipped) continue;
-    const key = (e.replacement || e.name) + (e.side ? " · на сторону" : "");
+    const key =
+      DDXCatalog.identity(e) +
+      " · " +
+      (e.unit ||
+        (e.side
+          ? "вес на сторону"
+          : DDXCatalog.get(DDXCatalog.identity(e))?.unit || "legacy"));
     const rows = DDXStore.workRows(e);
     if (!rows.length) continue;
     const entry = {
@@ -32,7 +38,10 @@ const names = [...all.keys()].sort((a, b) => a.localeCompare(b, "ru"));
 for (const name of names) {
   const o = document.createElement("option");
   o.value = name;
-  o.textContent = name;
+  o.textContent =
+    (DDXCatalog.get(name.split(" · ")[0])?.name || name) +
+    " · " +
+    name.split(" · ").slice(1).join(" · ");
   sel.append(o);
 }
 function plot(id, rows, key) {

@@ -10,11 +10,15 @@
         text: "История повреждена: рекомендации недоступны. Экспортируй копию для восстановления.",
       };
     }
-    const sessions = saved
-      .filter((s) => s.kind === document.body.dataset.kind)
-      .sort((a, b) => b.start - a.start);
+    const sessions = saved.sort((a, b) => b.start - a.start);
     const last = sessions.flatMap((s) =>
-      s.exercises.filter((x) => x.id === e.id).map((x) => ({ s, x })),
+      s.exercises
+        .filter((x) =>
+          window.DDXCatalog
+            ? DDXCatalog.identity(x) === DDXCatalog.identity(e)
+            : x.id === e.id,
+        )
+        .map((x) => ({ s, x })),
     )[0];
     if (!last) return null;
     const x = last.x;
@@ -34,16 +38,22 @@
       };
     if (
       x.skipped ||
-      x.replacement ||
+      (x.replacement && !x.exerciseId) ||
       st.alt >= 0 ||
       st.custom ||
-      !!x.side !== !!st.side
+      !!x.side !== !!st.side ||
+      (x.unit &&
+        window.DDXCatalog?.get(e.exerciseId)?.unit &&
+        x.unit !== DDXCatalog.get(e.exerciseId).unit)
     )
       return {
         text: "Пропуск, замена или другая единица веса: выбери нагрузку вручную.",
       };
     const rows = workRows(x);
-    if (rows.length !== 3 || x.rows.slice(1).some((r) => !r.d))
+    if (
+      rows.length !== (st.rows ? st.rows.length - 1 : 3) ||
+      x.rows.slice(1).some((r) => !r.d)
+    )
       return { text: "Неполные подходы: повышение нагрузки не предлагается." };
     const w = num(rows[0].w),
       rmin = Math.min(...rows.map((r) => num(r.r))),

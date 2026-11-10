@@ -30,6 +30,7 @@ if (loaded) {
       const st = loaded.ex[e.id];
       if (
         st &&
+        !loaded.cards &&
         (st.rows.length !== e.rows.length || st.alt >= (e.alts || []).length)
       )
         throw Error("Несовместимая карточка");
@@ -45,6 +46,7 @@ if (loaded) {
 }
 let S = loaded || { start: null, end: null, rest: null, ex: {} };
 if (!S.ex) S.ex = {};
+initCatalogSession(S);
 EX.forEach((e) => {
   if (!S.ex[e.id])
     S.ex[e.id] = {
@@ -163,6 +165,7 @@ function repName(e) {
   return a ? a.name : (st.custom || "").trim();
 }
 function isGeneric(e) {
+  if (e.catalog) return true;
   const st = S.ex[e.id],
     a = curAlt(e);
   return a ? !a.cal : !!(st.custom && st.custom.trim());
@@ -179,6 +182,7 @@ function expand6(b) {
   };
 }
 function curCal(e) {
+  if (e.catalog) return null;
   if (isGeneric(e)) return null;
   const st = S.ex[e.id],
     a = curAlt(e);
@@ -187,6 +191,7 @@ function curCal(e) {
   return null;
 }
 function curTrial(e) {
+  if (e.catalog) return null;
   const st = S.ex[e.id],
     a = curAlt(e);
   if (a) return a.trial || (a.cal === "main" ? e.trial : null);
@@ -342,6 +347,7 @@ EX.forEach((e) => {
   <textarea id="n-${e.id}" placeholder="заметки"></textarea>
   <div class="ctl"><button id="sk-${e.id}">ПРОПУСТИТЬ УПРАЖНЕНИЕ</button></div></div>`;
   list.appendChild(d);
+  catalogControls(e, d);
   const head = d.querySelector(".ex-head");
   head.tabIndex = 0;
   head.setAttribute("role", "button");
@@ -455,12 +461,16 @@ EX.forEach((e) => {
     if (advice) {
       const box = document.createElement("div");
       box.className = "last";
-      box.style.borderColor = "#ffb040";
+      box.style.borderColor = "var(--acc)";
       box.textContent = "ПО ИСТОРИИ: " + advice.text;
       d.querySelector(".ex-body").prepend(box);
     }
   }
 });
+const addExercise = document.createElement("button");
+addExercise.textContent = "Добавить упражнение";
+addExercise.onclick = () => openCatalog(null);
+list.append(addExercise);
 const firstOpen =
   EX.find((e) => !S.ex[e.id].skip && !S.ex[e.id].rows.every((r) => r.d)) ||
   EX[0];
@@ -725,7 +735,7 @@ function buildReport() {
   );
   const x = stats();
   const L = [
-    `ГРУДЬ + ТРИЦЕПС · DDX — ОТЧЁТ`,
+    `${KIND.toUpperCase()} · DDX — ОТЧЁТ`,
     `Дата: ${d.toLocaleDateString("ru-RU")} ${d.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })}`,
     `Время: ${fmtT(el)} · Рабочих подходов: ${x.work} · «кое как»: ${x.kk} · Замен: ${x.rep}`,
     `Контекст: в каждом упражнении 1 пробный + 3 рабочих, вес подобран по пробному; цель: запас 2 повтора`,
@@ -747,7 +757,8 @@ function buildReport() {
         : "не делал");
     const meta = [];
     if (rn && st.why.length) meta.push("причина замены: " + st.why.join(", "));
-    if (st.side) meta.push("вес указан на сторону, итого ×2");
+    if (st.side)
+      meta.push("вес указан на сторону, без автоматического пересчёта");
     if (st.t.length) meta.push(st.t.join(", "));
     if (meta.length) l += ` [${meta.join("; ")}]`;
     if (st.n && st.n.trim()) l += ` — ${st.n.trim()}`;
@@ -769,6 +780,30 @@ function archiveSession() {
       report: buildReport(),
       exercises: EX.map((e) => ({
         id: e.id,
+        exerciseId: DDXCatalog.identity({
+          id: e.id,
+          exerciseId: repName(e) ? null : e.exerciseId,
+          replacement: repName(e),
+        }),
+        slotId: e.slotId ?? e.id,
+        sessionExerciseId: KEY + ":" + S.start + ":" + e.id,
+        unit: S.ex[e.id].side
+          ? "вес на сторону"
+          : DDXCatalog.get(
+              DDXCatalog.identity({
+                id: e.id,
+                exerciseId: repName(e) ? null : e.exerciseId,
+                replacement: repName(e),
+              }),
+            )?.unit || "legacy: единица не уточнена",
+        equipment:
+          DDXCatalog.get(
+            DDXCatalog.identity({
+              id: e.id,
+              exerciseId: repName(e) ? null : e.exerciseId,
+              replacement: repName(e),
+            }),
+          )?.equipment || "legacy",
         name: e.name,
         replacement: repName(e),
         skipped: S.ex[e.id].skip,

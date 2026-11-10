@@ -35,6 +35,12 @@
           object(e) &&
           typeof e.id === "string" &&
           typeof e.name === "string" &&
+          ["exerciseId", "sessionExerciseId", "unit", "equipment"].every(
+            (k) => e[k] === undefined || typeof e[k] === "string",
+          ) &&
+          (e.slotId === undefined ||
+            e.slotId === null ||
+            typeof e.slotId === "string") &&
           Array.isArray(e.rows) &&
           e.rows.every(validRow) &&
           (!e.notes || typeof e.notes === "string") &&
@@ -83,6 +89,25 @@
         !Number.isInteger(e.alt)
       )
         throw Error("Некорректная карточка");
+    }
+    if (result.cards !== undefined) {
+      if (!Array.isArray(result.cards) || result.cards.length > 100)
+        throw Error("Некорректный список карточек");
+      const ids = new Set();
+      for (const c of result.cards) {
+        if (
+          !object(c) ||
+          typeof c.sessionExerciseId !== "string" ||
+          !/^[a-zA-Z0-9_-]+$/.test(c.sessionExerciseId) ||
+          ids.has(c.sessionExerciseId) ||
+          !Object.hasOwn(result.ex, c.sessionExerciseId) ||
+          (c.exerciseId !== null &&
+            (typeof c.exerciseId !== "string" ||
+              !window.DDXCatalog?.get(c.exerciseId)))
+        )
+          throw Error("Некорректная карточка каталога");
+        ids.add(c.sessionExerciseId);
+      }
     }
     result.schemaVersion = 2;
     return result;
