@@ -65,6 +65,26 @@ EX.forEach((e) => {
       side: !!e.sideDefault,
     };
 });
+// Fill a suggested probe once when its field is empty. Never overwrite drafts,
+// completed trials, or a field intentionally cleared by the user.
+function suggestTrialDefault(e) {
+  if (e.type !== "sets" || S.end) return false;
+  const st = S.ex[e.id], row = st?.rows?.[0];
+  if (!row || row.d || row.w !== "" || st.trialManuallyCleared) return false;
+  const replacement = repName(e);
+  const id = DDXCatalog.identity({
+    id: e.id, exerciseId: replacement ? null : e.exerciseId, replacement,
+  });
+  let history;
+  try { history = DDXStore.history(); } catch { return false; }
+  const proposal = WeightCalibration.evaluate(id, st, history).trial;
+  if (proposal.weight === null) return false;
+  row.w = String(proposal.weight);
+  row.r = String(proposal.reps);
+  return true;
+}
+let autoTrialChanged = false;
+for (const e of EX) if (suggestTrialDefault(e)) autoTrialChanged = true;
 function save() {
   if (resetting) return false;
   try {
@@ -205,6 +225,7 @@ function applyAlt(e) {
     });
     delete st.calibration;
     delete st.weightApplication;
+    suggestTrialDefault(e);
     renderRows(e);
     renderCal(e);
   }
@@ -402,9 +423,10 @@ function renderRows(e) {
       w.setAttribute("aria-label", e.name + " вес подхода " + i);
       w.oninput = () => {
         r.w = w.value;
+        if (i === 0) st.trialManuallyCleared = w.value.trim() === "";
         if (i > 0) r.manualWeight = true;
         save();
-        if (isWu(e, i) && isGeneric(e)) renderCal(e);
+        if (isWu(e, i)) renderCal(e);
       };
       d.appendChild(w);
       const rp = document.createElement("input");
@@ -417,6 +439,7 @@ function renderRows(e) {
       rp.oninput = () => {
         r.r = rp.value;
         save();
+        if (isWu(e, i)) renderCal(e);
       };
       d.appendChild(rp);
       const ef = document.createElement("button");
@@ -827,6 +850,7 @@ window.addEventListener("pagehide", save);
 updBar();
 showRest();
 tick();
+if (autoTrialChanged) save();
 if (S.end) {
   finish(true);
 }

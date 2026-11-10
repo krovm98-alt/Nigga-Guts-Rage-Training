@@ -319,8 +319,7 @@ function renderWeightRecommendation(e, d) {
     };
     box.append(b);
   }
-  if (result.trial.weight !== null && !st.rows[0].d)
-    button("Применить пробный вес", "trial");
+  // Trial weight is prefilled in the trial row, never applied via a button.
   text("b", "Рекомендованный рабочий вес");
   text(
     "p",
