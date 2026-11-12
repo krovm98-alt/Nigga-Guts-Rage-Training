@@ -47,7 +47,11 @@ if (loaded) {
 let S = loaded || { start: null, end: null, rest: null, ex: {} };
 if (!S.ex) S.ex = {};
 initCatalogSession(S);
+const freshExerciseIds = new Set();
 EX.forEach((e) => {
+  if (!S.ex[e.id]) {
+    freshExerciseIds.add(e.id);
+  }
   if (!S.ex[e.id])
     S.ex[e.id] = {
       rows: e.rows.map((r) => ({
@@ -85,6 +89,12 @@ function suggestTrialDefault(e) {
 }
 let autoTrialChanged = false;
 for (const e of EX) if (suggestTrialDefault(e)) autoTrialChanged = true;
+// Future targets apply only to new, empty exercise cards, never to drafts.
+let nextTargetChanged = false;
+for (const e of EX) {
+  if (!S.end && freshExerciseIds.has(e.id) && e.type === "sets" &&
+      SessionProgression.prefill(e,S.ex[e.id])) nextTargetChanged = true;
+}
 function save() {
   if (resetting) return false;
   try {
@@ -736,6 +746,78 @@ function archiveSession() {
     );
   }
 }
+function showNextPlan(record, restoring) {
+  const root = $("nextPlan");
+  if (!root) return;
+  root.replaceChildren();
+  const heading = document.createElement("h3");
+  heading.textContent = "ТРЕНИРОВКА СОХРАНЕНА · ПЛАН ПРОГРЕССИИ";
+  root.append(heading);
+  if (!record) {
+    root.append(document.createTextNode(
+      "Архив не подтверждён. Не закрывай приложение, пока запись не сохранена."));
+    return;
+  }
+  let history;
+  try { history = DDXStore.history(); }
+  catch { root.append(document.createTextNode("История недоступна для расчёта.")); return; }
+  const goals = SessionProgression.evaluate(record, history);
+  const existingTargets = SessionProgression.read();
+  const alreadyStored = Object.values(existingTargets)
+    .some(target => target.sourceSessionId === record.id);
+  // Older completed sessions (before this feature was installed) also get
+  // their goals on first reopening, but never replace targets from newer sessions.
+  const mostRecent = history.every(item => item.id === record.id || item.start <= record.start);
+  if (!restoring || (mostRecent && !alreadyStored)) {
+    try { SessionProgression.store(record, goals); }
+    catch { root.append(document.createTextNode(
+      "История сохранена, но цели следующего занятия не записаны. Экспортируй резервную копию.")); }
+  }
+  const subtitle = document.createElement("p");
+  subtitle.textContent = "Результат уже в истории. Безопасные цели с тем же весом будут подготовлены в новой тренировке. Повышение веса — только после твоего подтверждения.";
+  root.append(subtitle);
+  if (!goals.length) {
+    root.append(document.createTextNode("Нет надёжных данных для автоматической прогрессии. Следующий вес выбирается вручную."));
+    return;
+  }
+  const saved = SessionProgression.read();
+  for (const goal of goals) {
+    const line = document.createElement("div");
+    line.className = "next-goal";
+    const title = document.createElement("strong");
+    title.textContent = goal.name;
+    const info = document.createElement("p");
+    let status = goal.reason;
+    if (goal.kind === "reps")
+      status = goal.proposedWeight + " кг × " + goal.proposedReps + " · " + status;
+    else if (goal.kind === "ceiling" && goal.proposedWeight !== null)
+      status = "Возможный следующий вес: " + goal.proposedWeight + " кг × " +
+        goal.proposedReps + ". " + status;
+    info.textContent = status;
+    line.append(title,info);
+    if (goal.kind === "ceiling" && goal.proposedWeight !== null) {
+      const approve = document.createElement("button");
+      const isApproved = () =>
+        saved[goal.exerciseId]?.sourceSessionId === record.id &&
+        saved[goal.exerciseId]?.weight === goal.proposedWeight;
+      approve.textContent = isApproved() ? "ПОВЫШЕНИЕ ПОДТВЕРЖДЕНО" : "ОДОБРИТЬ ПОВЫШЕНИЕ ДЛЯ СЛЕДУЮЩЕЙ";
+      approve.disabled = restoring && !record;
+      approve.onclick = () => {
+        if (!confirm("Подтвердить повышение до " + goal.proposedWeight +
+          " кг для следующей тренировки? Только если есть такой шаг оборудования.")) return;
+        goal.approved = true;
+        try {
+          SessionProgression.store(record, goals);
+          approve.textContent = "ПОВЫШЕНИЕ ПОДТВЕРЖДЕНО";
+        } catch {
+          alert("Не удалось сохранить цель. Экспортируй резервную копию.");
+        }
+      };
+      line.append(approve);
+    }
+    root.append(line);
+  }
+}
 function finish(restoring = false) {
   if (
     !S.end &&
@@ -765,6 +847,12 @@ function finish(restoring = false) {
   $("stSets").textContent = x.work;
   $("stKK").textContent = x.kk + " из " + x.work;
   $("stRep").textContent = x.rep;
+  let archiveRecord = null;
+  try {
+    const archiveId = KEY + "_" + S.start;
+    archiveRecord = DDXStore.history().find(item => item.id === archiveId) || null;
+  } catch {}
+  showNextPlan(archiveRecord, restoring);
   $("scrMain").classList.add("hidden");
   $("scrFinal").classList.remove("hidden");
   window.scrollTo(0, 0);
@@ -850,7 +938,7 @@ window.addEventListener("pagehide", save);
 updBar();
 showRest();
 tick();
-if (autoTrialChanged) save();
+if (autoTrialChanged || nextTargetChanged) save();
 if (S.end) {
   finish(true);
 }

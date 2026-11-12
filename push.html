@@ -137,7 +137,9 @@
             <div class="l">ЗАМЕН</div>
           </div>
         </div>
-        <button class="btn" onclick="copyReport()">КОПИРОВАТЬ ОТЧЁТ</button>
+        <div id="nextPlan" class="notice" role="region" aria-label="Прогресс и следующая тренировка"></div>
+        <a class="btn" href="./index.html">ОТКРЫТЬ СТАТИСТИКУ</a>
+        <details class="notice"><summary>Экспортировать текстовый отчёт (необязательно)</summary><button class="btn ghost small" onclick="copyReport()">КОПИРОВАТЬ ОТЧЁТ</button></details>
         <div class="hint">
           Не скопировалось: отчёт появится ниже, зажми текст и скопируй вручную.
         </div>
@@ -167,6 +169,7 @@
     <script src="push-data.js"></script>
     <script src="weight-calibration.js"></script>
     <script src="catalog-session.js"></script>
+    <script src="session-progression.js"></script>
     <script src="workout.js"></script>
     <script src="pwa.js"></script>
   </body>

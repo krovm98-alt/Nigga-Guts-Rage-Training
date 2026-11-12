@@ -15,7 +15,7 @@ test("trial is prefilled without a button and effort changes the suggested work 
   await card.locator(".ex-head").click();
   const weights=card.locator("input.iw");
   await expect(weights.nth(0)).toHaveValue("12");
-  await expect(weights.nth(1)).toHaveValue("");
+  await expect(weights.nth(1)).toHaveValue("21");
   await expect(card.getByRole("button",{name:"Применить пробный вес"})).toHaveCount(0);
   await weights.nth(0).fill("14");
   await card.locator("button.eff").nth(0).click();

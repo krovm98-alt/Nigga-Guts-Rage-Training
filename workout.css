@@ -629,3 +629,20 @@ header::before {
 .catalog-dialog h4 {
   margin: 8px 0;
 }
+
+/* Completed session is saved automatically. These cards describe the next goal. */
+#nextPlan {
+  margin: 18px 0;
+  padding: 16px;
+  border: 1px solid #8f2f3c;
+  border-radius: 10px;
+  background: #1d222b;
+}
+#nextPlan h3 { margin: 0 0 8px; font-size: 17px; color: #f2d7db; }
+#nextPlan > p { color: #c4ccd5; font-size: 13px; line-height: 1.5; }
+.next-goal { border-top: 1px solid #424953; padding: 12px 0; }
+.next-goal strong { color: #e8eaf0; }
+.next-goal p { color: #c5cbd4; margin: 6px 0; line-height: 1.5; font-size: 13px; }
+.next-goal button { min-height: 44px; width: 100%; padding: 10px;
+ background: #542532; color: #fff; border: 1px solid #b54658; border-radius: 7px; }
+#scrFinal details.notice { margin: 12px 0; }
