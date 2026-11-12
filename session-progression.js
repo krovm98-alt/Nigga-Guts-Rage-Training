@@ -102,9 +102,29 @@
     localStorage.setItem(KEY,JSON.stringify(next));
     return next;
   }
+  function latestTarget(exerciseId) {
+    let history;
+    try { history = DDXStore.history(); }
+    catch { return null; }
+    const matches = history.filter(s => s.exercises.some(e => identity(e) === exerciseId))
+      .sort((a,b) => b.start-a.start);
+    if (!matches.length) return null;
+    const last = matches[0], catalog = DDXCatalog.get(exerciseId);
+    const stored = read()[exerciseId];
+    // Never apply an old approved goal after a newer completed session.
+    if (stored && stored.sourceSessionId === last.id) return stored;
+    const proposal = evaluate(last,history).find(g => g.exerciseId === exerciseId);
+    if (!proposal?.approved || !Number.isFinite(proposal.proposedWeight) ||
+        !Number.isInteger(proposal.proposedReps)) return null;
+    return {
+      exerciseId,sourceSessionId:last.id,
+      weight:proposal.proposedWeight,reps:proposal.proposedReps,
+      unit:proposal.unit,equipment:catalog?.equipment,
+    };
+  }
   function prefill(e, state) {
     const id = identity(e);
-    const target = read()[id];
+    const target = latestTarget(id);
     const catalog = DDXCatalog.get(id);
     if (!target || !catalog || target.unit !== catalog.unit ||
         target.equipment !== catalog.equipment || state.side || state.skip ||
