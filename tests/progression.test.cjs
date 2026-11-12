@@ -67,3 +67,17 @@ test("fatigue, pain and incomplete sets never create automatic weight increases"
  bench.notes="";bench.rows[2].d=false;
  assert.equal(c.SessionProgression.evaluate(s,[]).find(g=>g.exerciseId==="db_bench").approved,false);
 });
+
+test("older completed workout automatically provides safe next goal without needing a past finish screen",()=>{
+ const {c}=setup();
+ // The November 9 archive is already in storage, as for an Android user
+ // who completed a session before upgrading this feature.
+ assert.equal(c.SessionProgression.read().db_bench,undefined);
+ const rows=[{w:"12",r:"8",e:0,d:false},
+   {w:"",r:"8",e:0,d:false},
+   {w:"",r:"8",e:0,d:false},
+   {w:"",r:"8",e:0,d:false}];
+ assert.equal(c.SessionProgression.prefill({id:"dbbench"},{rows,side:false,skip:false}),true);
+ assert.equal(rows[1].w,"21");
+ assert.equal(rows[1].r,"9");
+});
