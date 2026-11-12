@@ -24,5 +24,5 @@ test("finish archives automatically and renders progress, next workout inherits 
  await page.getByRole("button",{name:"НОВАЯ ТРЕНИРОВКА"}).click();
  await page.waitForURL("**/push.html");
  await expect(page.locator("#ex-dbbench input.iw").nth(1)).toHaveValue("21");
- await expect(page.locator("#ex-dbbench input.ir").nth(1)).toHaveValue("9");
+ console.log("NEXT_STATE", await page.evaluate(() => ({goal:SessionProgression.read().db_bench,rows:S.ex.dbbench.rows,latest:DDXStore.history().at(-1)?.id})));\n await expect(page.locator("#ex-dbbench input.ir").nth(1)).toHaveValue("9");
 });
