@@ -17,7 +17,7 @@ test("finish archives automatically and renders progress, next workout inherits 
  await expect(page.locator("#scrFinal")).toBeVisible();
  await expect(page.locator("#nextPlan")).toContainText("ТРЕНИРОВКА СОХРАНЕНА");
  await expect(page.locator("#nextPlan")).toContainText("21 кг × 9");
- await expect(page.locator("#scrFinal").getByRole("button",{name:"КОПИРОВАТЬ ОТЧЁТ"})).toHaveCount(1);
+ await expect(page.locator('#scrFinal button[onclick="copyReport()"]')).toHaveCount(1);
  expect(await page.evaluate(()=>DDXStore.history().length)).toBe(1);
  await page.reload();
  expect(await page.evaluate(()=>DDXStore.history().length)).toBe(1);
