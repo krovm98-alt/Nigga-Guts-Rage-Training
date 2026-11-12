@@ -1,4 +1,4 @@
-const CACHE = "guts-rage-v5-production-1-catalog-7";
+const CACHE = "guts-rage-v5-production-1-catalog-8";
 const ASSETS = [
   "./weight-calibration.js",
   "./session-progression.js",
