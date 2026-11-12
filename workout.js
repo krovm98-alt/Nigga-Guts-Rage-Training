@@ -92,7 +92,7 @@ for (const e of EX) if (suggestTrialDefault(e)) autoTrialChanged = true;
 // Future targets apply only to new, empty exercise cards, never to drafts.
 let nextTargetChanged = false;
 for (const e of EX) {
-  if (freshExerciseIds.has(e.id) && e.type === "sets" &&
+  if (!S.end && freshExerciseIds.has(e.id) && e.type === "sets" &&
       SessionProgression.prefill(e,S.ex[e.id])) nextTargetChanged = true;
 }
 function save() {
@@ -762,7 +762,13 @@ function showNextPlan(record, restoring) {
   try { history = DDXStore.history(); }
   catch { root.append(document.createTextNode("История недоступна для расчёта.")); return; }
   const goals = SessionProgression.evaluate(record, history);
-  if (!restoring) {
+  const existingTargets = SessionProgression.read();
+  const alreadyStored = Object.values(existingTargets)
+    .some(target => target.sourceSessionId === record.id);
+  // Older completed sessions (before this feature was installed) also get
+  // their goals on first reopening, but never replace targets from newer sessions.
+  const mostRecent = history.every(item => item.id === record.id || item.start <= record.start);
+  if (!restoring || (mostRecent && !alreadyStored)) {
     try { SessionProgression.store(record, goals); }
     catch { root.append(document.createTextNode(
       "История сохранена, но цели следующего занятия не записаны. Экспортируй резервную копию.")); }
