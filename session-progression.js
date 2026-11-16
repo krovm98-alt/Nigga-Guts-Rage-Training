@@ -27,7 +27,7 @@
       const sameWeight = weights.every(w => Number.isFinite(w) && w > 0 && w === weights[0]);
       const base = sameWeight ? weights[0] : null;
       const safe = complete && sameWeight && !hard && !hurt && minReps >= 1;
-      const ceiling = Math.max(catalog.reps >= 12 ? 12 : 10, catalog.reps || 8);
+      const ceiling = e.repMax || Math.max(catalog.reps >= 12 ? 12 : 10, catalog.reps || 8);
       const item = {
         exerciseId:canonical, name:catalog.name, unit:catalog.unit,
         weight:base, reps:minReps, sourceSessionId:session.id,
@@ -54,7 +54,7 @@
         const next = matches.length ? matches[0] : null;
         item.kind = "ceiling";
         item.proposedWeight = next;
-        item.proposedReps = catalog.reps;
+        item.proposedReps = e.repMin || catalog.reps;
         item.reason = next == null
           ? "Верх диапазона достигнут. Шаг веса неизвестен — выбери вручную."
           : "Верх диапазона достигнут. Возможное повышение требует отдельного подтверждения.";
@@ -72,6 +72,11 @@
           item.previousWeight = num(prev[0].w);
           item.previousReps = Math.min(...prev.map(r => num(r.r)));
         }
+      }
+      if (safe && planned.length < Math.max(3, previous?.rows?.length - 1 || 0)) {
+        item.kind = "volume"; item.proposedWeight = base;
+        item.proposedReps = minReps; item.approved = safe;
+        item.reason = "Сокращённый объём: повтори нагрузку; повышение требует полного объёма.";
       }
       result.push(item);
     }
@@ -114,6 +119,10 @@
     // Never apply an old approved goal after a newer completed session.
     if (stored && stored.sourceSessionId === last.id) return stored;
     const proposal = evaluate(last,history).find(g => g.exerciseId === exerciseId);
+    if (proposal?.kind === "ceiling" && Number.isFinite(proposal.weight)) {
+      return {exerciseId,sourceSessionId:last.id,weight:proposal.weight,reps:proposal.reps,
+        unit:proposal.unit,equipment:catalog?.equipment};
+    }
     if (!proposal?.approved || !Number.isFinite(proposal.proposedWeight) ||
         !Number.isInteger(proposal.proposedReps)) return null;
     return {
@@ -139,5 +148,5 @@
     }
     return changed;
   }
-  window.SessionProgression = {KEY,evaluate,read,store,prefill};
+  window.SessionProgression = {KEY,evaluate,read,store,prefill,latestTarget};
 })();

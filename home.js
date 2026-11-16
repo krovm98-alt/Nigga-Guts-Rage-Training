@@ -22,6 +22,8 @@ const names = {
 const el = (id) => document.getElementById(id);
 function show() {
   const h = hist().sort((a, b) => b.start - a.start);
+  const weekly = el("weekly");
+  if (weekly) weekly.textContent = "Рабочие подходы за текущую неделю · " + Object.entries(AdaptivePlan.weekly(h)).map(([g,n])=>g+": "+n).join(" · ");
   el("count").textContent = h.length;
   el("sets").textContent = h.reduce((n, x) => n + DDXStore.metrics(x).work, 0);
   el("last").textContent = h.length
@@ -42,7 +44,7 @@ function show() {
     d.className = "session";
     const sum = document.createElement("summary");
     sum.textContent =
-      (names[x.kind] || x.kind || "ТРЕНИРОВКА") +
+      (x.name || names[x.kind] || x.kind || "ТРЕНИРОВКА") +
       " · " +
       new Date(x.start).toLocaleDateString("ru-RU");
     const info = document.createElement("small");
@@ -50,8 +52,13 @@ function show() {
       DDXStore.metrics(x).work +
       " рабочих подходов · " +
       Math.round(((x.end || x.start) - x.start) / 60000) +
-      " мин · отказов: " +
+      " мин · " + [...new Set(x.exercises.filter(e=>DDXStore.workRows(e).length).map(e=>DDXCatalog.get(DDXCatalog.identity(e))?.group).filter(Boolean))].join(", ") + " · отказов: " +
       (x.stats?.kk || 0);
+    const approvals = document.createElement("p");
+    const log = safeParse(localStorage.getItem("ddx_progression_approvals_v1"), []);
+    approvals.textContent = (Array.isArray(log) ? log : []).filter(g=>g.sourceSessionId===x.id)
+      .map(g=>"Подтверждена цель: " + (DDXCatalog.get(g.exerciseId)?.name || g.exerciseId) +
+        " · " + g.weight + " кг × " + g.reps).join("; ");
     const pre = document.createElement("pre");
     pre.textContent = DDXStore.displayText(x.report || "");
     const b = document.createElement("button");
@@ -73,6 +80,7 @@ function show() {
     d.append(
       sum,
       info,
+      approvals,
       renderWorkoutAnalysis(WorkoutAnalysis.analyzeWorkout(x, h)),
       pre,
       b,

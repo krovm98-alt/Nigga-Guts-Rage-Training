@@ -47,7 +47,7 @@
       exerciseId, unit:x?.unit || "Единица требует уточнения",
       base:reliable.weight, source:reliable.source === "history" ? "Последняя тренировка" : "Исходный ориентир",
       trial:{weight:null,reps:8,reason:"Вес требует уточнения"},
-      work:{weight:null,reps:x?.reps||8,sets:Math.max(0,(state.rows?.length||1)-1),
+      work:{weight:null,reps:state.repMin||x?.reps||8,sets:Math.max(0,(state.rows?.length||1)-1),
         confidence:"недостаточно данных",reason:"Выполни пробный подход и оцени усилие."},
       actual:actual ? {...actual} : null,
     };
@@ -98,11 +98,25 @@
       result.work.reason="Проба слишком лёгкая или короткая для оценки; нужен промежуточный проверочный подход.";
       return finish();
     }
+    if (!recent) {
+      result.work.reason="Нет надёжной истории: подбери посильную нагрузку дополнительной пробой, без автоматического повышения.";
+      return finish();
+    }
+    const approved = window.SessionProgression?.latestTarget(exerciseId);
+    if (effort<=3 && approved && approved.unit===x.unit && approved.equipment===x.equipment) {
+      result.work.weight=approved.weight;
+      result.work.reason="Проба "+w+" кг × "+reps+" комфортная; использована подтверждённая цель из последней тренировки.";
+      result.work.confidence="умеренная";
+      return finish();
+    }
     const factor=effort<=3 ? 1 : effort===4 ? 0.9 : 0.8;
-    let target=Math.floor(base*factor*2)/2;
-    if (completed.length) target=Math.min(target,Math.min(...completed));
-    if (target<w) {
-      result.work.reason="Проба тяжелее консервативного рабочего ориентира. Уменьши вес или подбери его вручную.";
+    const ceiling = effort >= 5 ? Math.min(base*factor,w*0.9) : base*factor;
+    // Select only loads observed on this equipment; never invent a 0.5 kg plate.
+    const known = [base,w,...(recent?.rows || []).filter(r=>r.d).map(r=>number(r.w))]
+      .filter(value=>Number.isFinite(value) && value>0 && value<=ceiling);
+    const target = known.length ? Math.max(...known) : null;
+    if (target===null) {
+      result.work.reason="Проба тяжёлая. Уменьши вес на доступный шаг оборудования; надёжный меньший вес неизвестен.";
       return finish();
     }
     result.work.weight=target;

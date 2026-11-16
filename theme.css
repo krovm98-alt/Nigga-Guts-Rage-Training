@@ -465,3 +465,10 @@ a {
   border: 1px solid #b52b47;
   border-radius: 6px;
 }
+
+/* Adaptive plan controls retain the existing Bloodstorm palette. */
+.plan-editor { margin: 12px 0; padding: 10px; border: 1px solid #414b58; border-radius: 8px; }
+.plan-editor summary, .plan-panel summary { cursor:pointer; padding:12px 0; }
+.plan-editor input, .plan-panel input:not([type=checkbox]), .plan-panel select { display:block; width:100%; min-height:44px; margin:8px 0; background:#191e26; color:#fff; border:1px solid #626c78; border-radius:6px; padding:8px; box-sizing:border-box; }
+.plan-panel button,.plan-editor button { min-height:44px; max-width:100%; white-space:normal; margin:5px 0; padding:10px; }
+.plan-panel label { display:block; padding:8px 0; }

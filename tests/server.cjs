@@ -44,7 +44,7 @@ http
         data = Buffer.from(
           data
             .toString()
-            .replace("v5-production-1", "v5-production-test-" + revision),
+            .replace(/guts-rage-[^"\n]+/, "guts-rage-v5-production-test-" + revision),
         );
       res.end(data);
     });

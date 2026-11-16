@@ -8,6 +8,7 @@ test.beforeEach(async ({ context }) => {
 async function replace(page) {
   await page.goto("push.html");
   await page.locator("#ex-dbbench .ex-head").click();
+  await page.locator("#ex-dbbench .plan-editor summary").click();
   await page
     .locator("#ex-dbbench")
     .getByRole("button", { name: "Заменить упражнение", exact: true })
@@ -29,6 +30,7 @@ test("replacement persists, archives canonical identity, exports and leaves next
   await page.locator("#ex-dbbench .ex-head").click();
   await page.locator("#ex-dbbench input.iw").nth(1).fill("50");
   await page.locator("#ex-dbbench button.ok").nth(1).click();
+  await page.locator("#ex-dbbench .plan-editor summary").click();
   await page
     .locator("#ex-dbbench")
     .getByRole("button", { name: "Заменить упражнение", exact: true })
@@ -82,13 +84,15 @@ test("extra exercise, duplicate protection, order, completed deletion protection
     has: page.getByRole("heading", { name: "Грудной тренажёр", exact: true }),
   });
   await card.locator(".ex-head").click();
+  await card.locator(".plan-editor summary").click();
   await card.getByRole("button", { name: "Переместить выше" }).click();
   await card.locator(".ex-head").click();
   await expect(card.locator("button.ok")).toHaveCount(3);
   await card.locator("input.iw").nth(1).fill("41");
   await card.locator("button.ok").nth(1).click();
+  await card.locator(".plan-editor summary").click();
   await card
-    .getByRole("button", { name: "Удалить дополнительное упражнение" })
+    .getByRole("button", { name: "Удалить упражнение" })
     .click();
   await expect(card).toHaveCount(1);
   await page

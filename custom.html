@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="theme-color" content="#20252C" />
+    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="icon" href="icons/icon-192.png" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+    />
+    <title>СВОЯ ТРЕНИРОВКА · Nigga Guts Rage Training</title>
+
+    <link rel="stylesheet" href="workout.css" />
+    <link rel="stylesheet" href="theme.css" />
+  </head>
+  <body data-kind="custom">
+    <a href="index.html" class="go-home">← ГЛАВНАЯ · NIGGA GUTS RAGE</a>
+    <div class="wrap">
+      <p id="saveStatus" role="status" aria-live="polite">
+        Локальный журнал · автосохранение
+      </p>
+      <header>
+        <h1>СВОЯ ТРЕНИРОВКА</h1>
+        <div id="totalTimer">00:00</div>
+      </header>
+      <div class="pbar"><div id="pfill"></div></div>
+      <div id="scrMain">
+        <details class="notice warn">
+          <summary>ФОРМАТ</summary>
+          <br />
+          В каждом упражнении
+          <b style="color: var(--acc)">По умолчанию 1 пробный + 3 рабочих; в редакторе — от 1 до 10 рабочих.</b> Цель в
+          рабочих: запас 2 повтора, избегай подходов без запаса. Под каждым
+          упражнением есть графа
+          <b style="color: var(--warn)">«ЗАМЕНА УПРАЖНЕНИЯ»</b>, если станок
+          занят или упражнение не подошло.
+        </details>
+
+        <details class="notice warn">
+          <summary>ПРАВИЛО ВЕСА</summary>
+          <br />
+          Вес гантели — одной, вес тренажёра — по его шкале. Единицы веса не
+          пересчитываются. Подбор учитывает фактическую пробу и надёжность
+          истории. Вес применяется только по отдельному подтверждению.
+        </details>
+
+        <details class="notice">
+          <summary>КАК ПОДОБРАТЬ ВЕС</summary>
+          <ol>
+            <li>
+              Проверь источник пробного веса. Подтверди подстановку или введи
+              посильный вес вручную; затем отметь фактические повторы и
+              сложность.
+            </li>
+            <li>
+              Оцени запас после подхода, сколько повторов ещё мог бы сделать:
+              <b style="color: var(--acc)">легко</b> 5+,
+              <b style="color: var(--acc)">легко-норм</b> 4,
+              <b style="color: var(--acc)">норм</b> 3,
+              <b style="color: var(--acc)">норм-тяжело</b> 2,
+              <b style="color: var(--acc)">тяжело</b> 1,
+              <b style="color: var(--acc)">кое как</b> впритык. Цель — сохранять
+              не менее двух повторов в запасе.
+            </li>
+            <li>
+              Нажимай «как далось» у пробного, пока не встанет слово, потом ✓.
+              Подстановка веса требует подтверждения. Калибровка
+              ориентировочная: сверяй с ощущениями и техникой, не принимай
+              предложенный вес как обязательный.
+            </li>
+            <li>
+              После пробы проверь объяснение рабочего веса. Нажми «Применить
+              рабочий вес» и подтверди действие. При высокой сложности не
+              повышай нагрузку; выбери посильную вручную.
+            </li>
+            <li>
+              Отмечай сложность рабочих подходов: без оценки рекомендации по
+              повышению будут недоступны.
+            </li>
+          </ol>
+        </details>
+
+        <details class="notice">
+          <summary>КАК ПОЛЬЗОВАТЬСЯ ЗАМЕНОЙ</summary>
+          <ol>
+            <li>
+              Нажми готовую замену или впиши своё упражнение. В отчёте будет
+              «Основное → ЗАМЕНА: новое».
+            </li>
+            <li>Отметь причину: занято, нет в зале, дискомфорт.</li>
+            <li>
+              Если на тренажёре вес указан на одну сторону, включи «вес на
+              сторону (×2)». Отчёт пометит это.
+            </li>
+            <li>
+              Нет базы по замене: выбери рабочий вес самостоятельно.
+              Автоматическое повышение отключено.
+            </li>
+            <li>
+              Если делал замену, заполни подходы в карточке и не жми «Пропустить
+              упражнение»: пропуск убирает подходы из отчёта.
+            </li>
+          </ol>
+        </details>
+
+        <div id="list"></div>
+
+        <button class="btn" onclick="finish()">ЗАВЕРШИТЬ ТРЕНИРОВКУ</button>
+        <button class="btn ghost small" id="resetBtn" onclick="resetAll()">
+          СБРОСИТЬ ТРЕНИРОВКУ
+        </button>
+      </div>
+
+      <div id="scrFinal" class="hidden">
+        <div
+          class="bebas"
+          style="font-size: 54px; text-align: center; margin: 16px 0"
+        >
+          ГОТОВО
+        </div>
+        <div class="stat-grid">
+          <div class="stat">
+            <div class="v" id="stTime">—</div>
+            <div class="l">ВРЕМЯ</div>
+          </div>
+          <div class="stat">
+            <div class="v" id="stSets">—</div>
+            <div class="l">РАБОЧИХ ПОДХОДОВ</div>
+          </div>
+          <div class="stat">
+            <div class="v" id="stKK">—</div>
+            <div class="l">ПОДХОДОВ БЕЗ ЗАПАСА</div>
+          </div>
+          <div class="stat">
+            <div class="v" id="stRep">—</div>
+            <div class="l">ЗАМЕН</div>
+          </div>
+        </div>
+        <div id="nextPlan" class="notice" role="region" aria-label="Прогресс и следующая тренировка"></div>
+        <a class="btn" href="./index.html">ОТКРЫТЬ СТАТИСТИКУ</a>
+        <details class="notice"><summary>Экспортировать текстовый отчёт (необязательно)</summary><button class="btn ghost small" onclick="copyReport()">КОПИРОВАТЬ ОТЧЁТ</button></details>
+        <div class="hint">
+          Не скопировалось: отчёт появится ниже, зажми текст и скопируй вручную.
+        </div>
+        <textarea id="reportBox" class="hidden" readonly></textarea>
+        <button class="btn" onclick="newSession()">НОВАЯ ТРЕНИРОВКА</button
+        ><button class="btn ghost small" onclick="backToMain()">
+          ← ВЕРНУТЬСЯ К ТРЕНИРОВКЕ
+        </button>
+      </div>
+    </div>
+
+    <div id="restBar">
+      <div class="rt" id="restT">0:00</div>
+      <div class="rl" id="restL"></div>
+      <button onclick="addRest(30)">+30</button
+      ><button onclick="stopRest()">СТОП</button>
+    </div>
+    <div class="toast" id="toast" role="status" aria-live="polite">
+      СКОПИРОВАНО
+    </div>
+
+    <script src="catalog.js"></script>
+    <script src="storage.js"></script>
+    <script src="adaptive-plan.js"></script>
+    <script src="seed-workout.js"></script>
+    <script src="progression.js"></script>
+    <script src="exercise-config.js"></script>
+    <script src="custom-data.js"></script>
+    <script src="weight-calibration.js"></script>
+    <script src="catalog-session.js"></script>
+    <script src="session-progression.js"></script>
+    <script src="workout-analysis.js"></script>
+    <script src="workout.js"></script>
+    <script src="plan-ui.js"></script>
+    <script src="pwa.js"></script>
+  </body>
+</html>

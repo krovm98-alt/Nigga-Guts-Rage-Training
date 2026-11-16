@@ -22,7 +22,7 @@
       object(s) &&
       typeof s.id === "string" &&
       s.id.length > 0 &&
-      ["push", "pull", "legs"].includes(s.kind) &&
+      ["push", "pull", "legs", "custom"].includes(s.kind) &&
       Number.isFinite(s.start) &&
       s.start > 0 &&
       s.start <= 8640000000000000 &&
@@ -56,6 +56,8 @@
   function migrateState(input) {
     if (!object(input) || !object(input.ex)) throw Error("Некорректная сессия");
     const result = JSON.parse(JSON.stringify(input));
+    if (result.name !== undefined && (typeof result.name !== "string" || result.name.length>100))
+      throw Error("Некорректное название тренировки");
     for (const key of ["start", "end"])
       if (
         result[key] != null &&
@@ -72,6 +74,8 @@
     for (const e of Object.values(result.ex)) {
       if (!object(e) || !Array.isArray(e.rows) || !e.rows.every(validRow))
         throw Error("Некорректные подходы");
+      if (["repMin","repMax"].some(k=>e[k]!==undefined && (!Number.isInteger(e[k])||e[k]<1||e[k]>99)) ||
+          (e.repMin!==undefined && e.repMax<e.repMin)) throw Error("Некорректный диапазон повторений");
       e.t ??= [];
       e.why ??= [];
       e.n ??= "";
@@ -188,7 +192,7 @@
           throw Error("Некорректная история");
       } else if (k.startsWith("ddx_history_revision_")) {
         if (!validSession(x)) throw Error("Некорректная прежняя запись");
-      } else if (/^ddx_(push|pull|legs)_v[24]_/.test(k)) {
+      } else if (/^ddx_(push|pull|legs|custom)_v[24]_/.test(k)) {
         migrateState(x);
       } /* Unknown legacy ddx keys are preserved as opaque JSON; never interpreted by the UI. */
     }

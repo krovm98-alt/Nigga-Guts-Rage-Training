@@ -389,7 +389,7 @@ list.append(addExercise);
 const firstOpen =
   EX.find((e) => !S.ex[e.id].skip && !S.ex[e.id].rows.every((r) => r.d)) ||
   EX[0];
-$("ex-" + firstOpen.id).classList.add("open");
+if (firstOpen) $("ex-" + firstOpen.id).classList.add("open");
 
 function renderRows(e) {
   const st = S.ex[e.id],
@@ -431,6 +431,7 @@ function renderRows(e) {
       w.value = r.w;
       w.placeholder = "—";
       w.setAttribute("aria-label", e.name + " вес подхода " + i);
+      w.disabled = r.d;
       w.oninput = () => {
         r.w = w.value;
         if (i === 0) st.trialManuallyCleared = w.value.trim() === "";
@@ -446,6 +447,7 @@ function renderRows(e) {
       rp.value = r.r;
       rp.placeholder = "—";
       rp.setAttribute("aria-label", e.name + " повторы подхода " + i);
+      rp.disabled = r.d;
       rp.oninput = () => {
         r.r = rp.value;
         save();
@@ -456,6 +458,7 @@ function renderRows(e) {
       ef.className = "eff e" + r.e;
       ef.textContent = EFF[r.e];
       ef.onclick = () => {
+        if (r.d && i > 0 && r.e && !confirm("Исправить усилие выполненного подхода?")) return;
         r.e = (r.e + 1) % EFF.length;
         ef.className = "eff e" + r.e;
         ef.textContent = EFF[r.e];
@@ -528,6 +531,7 @@ function toggleDone(e, i) {
     toast("Введи вес от 0 и целое число повторений больше 0");
     return;
   }
+  if (row.d && !confirm("Разблокировать выполненный подход для исправления?")) return;
   row.d = !row.d;
   $("ac-" + e.id).disabled = st.rows.some((r) => r.d);
   const all = st.rows.every((r) => r.d);
@@ -558,6 +562,7 @@ function toggleDone(e, i) {
 }
 function skipEx(e) {
   const st = S.ex[e.id];
+  if (st.rows.some(r=>r.d)) { toast("Выполненные подходы защищены"); return; }
   st.skip = !st.skip;
   save();
   refresh(e);
@@ -692,6 +697,7 @@ function archiveSession() {
     const record = {
       id,
       kind: KIND,
+      name: S.name || document.querySelector("h1").textContent,
       date: new Date(S.start).toISOString(),
       start: S.start,
       end: S.end,
@@ -723,6 +729,8 @@ function archiveSession() {
               replacement: repName(e),
             }),
           )?.equipment || "legacy",
+        repMin: S.ex[e.id].repMin,
+        repMax: S.ex[e.id].repMax,
         name: e.name,
         replacement: repName(e),
         skipped: S.ex[e.id].skip,
@@ -776,6 +784,15 @@ function showNextPlan(record, restoring) {
   const subtitle = document.createElement("p");
   subtitle.textContent = "Результат уже в истории. Безопасные цели с тем же весом будут подготовлены в новой тренировке. Повышение веса — только после твоего подтверждения.";
   root.append(subtitle);
+  const analysis = WorkoutAnalysis.analyzeWorkout(record, history);
+  const review = document.createElement("details");
+  const reviewTitle = document.createElement("summary");
+  reviewTitle.textContent = "Локальный разбор · " + analysis.summary;
+  review.append(reviewTitle);
+  for (const text of [...analysis.good,...analysis.attention,...analysis.next]) {
+    const p = document.createElement("p"); p.textContent = text; review.append(p);
+  }
+  root.append(review);
   if (!goals.length) {
     root.append(document.createTextNode("Нет надёжных данных для автоматической прогрессии. Следующий вес выбирается вручную."));
     return;
@@ -808,6 +825,13 @@ function showNextPlan(record, restoring) {
         goal.approved = true;
         try {
           SessionProgression.store(record, goals);
+          const logKey = "ddx_progression_approvals_v1";
+          const log = JSON.parse(localStorage.getItem(logKey) || "[]");
+          if (!Array.isArray(log)) throw Error("Некорректный журнал подтверждений");
+          const entry = {sourceSessionId:record.id,exerciseId:goal.exerciseId,
+            weight:goal.proposedWeight,reps:goal.proposedReps,confirmedAt:Date.now()};
+          localStorage.setItem(logKey, JSON.stringify([
+            ...log.filter(x=>x.sourceSessionId!==record.id || x.exerciseId!==goal.exerciseId),entry]));
           approve.textContent = "ПОВЫШЕНИЕ ПОДТВЕРЖДЕНО";
         } catch {
           alert("Не удалось сохранить цель. Экспортируй резервную копию.");
@@ -907,7 +931,7 @@ if (new URLSearchParams(location.search).has("new")) {
   const key = "ddx_" + KIND + "_v4_" + Date.now();
   localStorage.setItem(
     key,
-    JSON.stringify({ start: Date.now(), end: null, rest: null, ex: {} }),
+    JSON.stringify({ start: null, updatedAt: Date.now(), end: null, rest: null, ex: {} }),
   );
   location.replace(KIND + ".html");
 }

@@ -1,5 +1,6 @@
 (function () {
   const items = [
+    {id:"db_fly",name:"Разведение гантелей лёжа",group:"Грудь",equipment:"гантели",unit:"вес одной гантели",reference:"не подтверждён",weight:null,reps:8,goal:"",status:"активное",requiresConfirmation:true,warning:"Подбери посильный вес без боли в плече."},
     {
       id: "db_bench",
       name: "Жим гантелей лёжа",
@@ -479,6 +480,7 @@
     },
   ];
   const legacy = {
+    dbfly: "db_fly",
     dbbench: "db_bench",
     dbincline: "incline_db_bench",
     dbtri: "overhead_db_tri",

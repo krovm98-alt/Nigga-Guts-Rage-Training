@@ -165,3 +165,7 @@ function render() {
 sel.onchange = render;
 window.addEventListener("resize", render);
 render();
+const weekly = document.createElement("p");
+weekly.className = "notice";
+weekly.textContent = "Рабочие подходы за текущую неделю · " + Object.entries(AdaptivePlan.weekly(hist)).map(([g,n])=>g+": "+n).join(" · ");
+document.getElementById("stats").before(weekly);
