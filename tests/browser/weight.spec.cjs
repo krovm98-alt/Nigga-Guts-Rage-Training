@@ -10,6 +10,7 @@ test("explicit confirmation, cancellation, completed rows and manual edits survi
 }) => {
   await page.goto("push.html");
   await page.locator("#ex-dbbench .ex-head").click();
+  await page.locator("#ex-dbbench .plan-editor summary").click();
   await page
     .locator("#ex-dbbench")
     .getByText("Заменить упражнение", { exact: true })
@@ -19,6 +20,11 @@ test("explicit confirmation, cancellation, completed rows and manual edits survi
   await page.locator("#ex-dbbench .ex-head").click();
   const rows = page.locator("#ex-dbbench input.iw");
   await expect(rows.nth(1)).toHaveValue("");
+  await page.evaluate(()=>{
+    const row={w:"50",r:"8",e:3,d:true};
+    localStorage.setItem(DDXStore.HKEY,JSON.stringify([{id:"fixture",kind:"push",start:1000,end:2000,exercises:[{id:"smith",exerciseId:"smith_bench",name:"Смит",rows:[{...row,w:"30"},row,row,row]}]}]));
+  });
+
   await rows.nth(0).fill("30");
   await page.locator("#ex-dbbench .eff").nth(1).click();
   await page.locator("#ex-dbbench button.ok").nth(0).click();

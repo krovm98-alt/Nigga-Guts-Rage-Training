@@ -11,7 +11,11 @@
         return {
           text: rec.reason + ". Укажи нагрузку вручную; повышение отключено.",
         };
-      const ceiling = e.workR >= 12 ? 12 : 10;
+      if (window.SessionProgression) {
+        const goal = SessionProgression.evaluate(rec.last.s, history()).find(g=>g.exerciseId===catalogId);
+        if (goal?.kind === "volume") return {text:goal.reason,weight:goal.weight,reps:goal.reps};
+      }
+      const ceiling = st.repMax || (e.workR >= 12 ? 12 : 10);
       if (rec.reps < 8)
         return {
           weight: rec.weight,

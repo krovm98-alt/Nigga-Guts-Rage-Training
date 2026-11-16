@@ -1,5 +1,6 @@
-const CACHE = "guts-rage-v5-production-1-catalog-8";
+const CACHE = "guts-rage-v6-adaptive-1";
 const ASSETS = [
+  "./adaptive-plan.js", "./plan-ui.js", "./custom-data.js", "./custom.html",
   "./weight-calibration.js",
   "./session-progression.js",
   "./bloodstorm.js",

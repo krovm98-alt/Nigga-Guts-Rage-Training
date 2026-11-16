@@ -8,10 +8,10 @@ function setup() {
   vm.runInContext(fs.readFileSync("catalog.js", "utf8"), c);
   return c.window.DDXCatalog;
 }
-test("all 34 explicitly listed DDX exercises have unique stable identities and seven groups", () => {
+test("all 35 catalog exercises including the legacy Push fly have unique stable identities and seven groups", () => {
   const c = setup();
-  assert.equal(c.items.length, 34);
-  assert.equal(new Set(c.items.map((x) => x.id)).size, 34);
+  assert.equal(c.items.length, 35);
+  assert.equal(new Set(c.items.map((x) => x.id)).size, 35);
   assert.equal(new Set(c.items.map((x) => x.group)).size, 7);
 });
 test("uncertain and ranged data never become confirmed weights", () => {

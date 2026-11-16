@@ -1,0 +1,21 @@
+const {test,expect}=require('@playwright/test');
+test.beforeEach(async({context})=>{await context.addInitScript(()=>localStorage.setItem('ddx_seed_second_month_v1','{"version":1}'));});
+async function example(page){await page.goto('custom.html');await page.getByText('Добавить упражнения из шаблона',{exact:true}).click();await page.getByRole('button',{name:'Push + Legs · 18 подходов',exact:true}).click();await expect(page.locator('.plan-panel')).toContainText('18 рабочих подходов');}
+test('empty Custom, Push base, catalog Legs addition, trial prefill and plan editing persist',async({page})=>{
+ await page.goto('custom.html');expect(await page.evaluate(()=>EX.filter(e=>e.type==='sets').length)).toBe(0);
+ await page.getByText('Добавить упражнения из шаблона',{exact:true}).click();await page.getByRole('button',{name:'Добавить PUSH',exact:true}).click();await expect(page.locator('.plan-panel')).toContainText('18 рабочих подходов');
+ await page.getByRole('button',{name:'Добавить упражнение',exact:true}).click();await page.getByRole('button',{name:'Выбрать: Приседания со штангой',exact:true}).click();
+ const card=page.locator('.ex').filter({has:page.getByRole('heading',{name:'Приседания со штангой',exact:true})});await card.locator('.ex-head').click();await expect(card.locator('input.iw').first()).toHaveValue('40');
+ await card.locator('.plan-editor summary').click();await card.getByLabel('Рабочих подходов',{exact:true}).fill('2');await card.getByLabel('Целевые повторы',{exact:true}).fill('8–10');await card.getByRole('button',{name:'Сохранить план'}).click();
+ await card.locator('.ex-head').click();await expect(card.locator('button.ok')).toHaveCount(3);await card.locator('.plan-editor summary').click();await card.getByRole('button',{name:'Переместить выше'}).click();await page.reload();expect(await page.evaluate(()=>EX.at(-2).exerciseId)).toBe('barbell_squat');
+});
+test('18-set example archives once, protects results, restores offline and progresses into Legs',async({page,context})=>{
+ await page.setViewportSize({width:320,height:740});await example(page);expect(await page.evaluate(()=>DDXStore.history().length)).toBe(0);
+ await page.getByLabel('Название тренировки').fill('Грудь + ноги');await page.getByLabel('Название тренировки').blur();
+ await page.evaluate(()=>{for(const e of EX.filter(e=>e.type==='sets')){const st=S.ex[e.id];for(const r of st.rows){r.w=e.exerciseId==='barbell_squat'?'40':'20';r.r='8';r.e=3;r.d=true;}}ensureStart();save();});
+ await page.reload();expect(await page.evaluate(()=>S.name)).toBe('Грудь + ноги');
+ const squat=page.locator('.ex').filter({has:page.getByRole('heading',{name:'Приседания со штангой',exact:true})});await squat.locator('.ex-head').click();await expect(squat.locator('input.iw').nth(1)).toBeDisabled();await squat.locator('.plan-editor summary').click();await squat.getByRole('button',{name:'Удалить упражнение',exact:true}).click();await expect(squat).toHaveCount(1);
+ await page.evaluate(()=>navigator.serviceWorker.ready);await page.reload();await context.setOffline(true);await page.reload();await page.getByRole('button',{name:'ЗАВЕРШИТЬ ТРЕНИРОВКУ',exact:true}).click();await expect(page.locator('#scrFinal')).toBeVisible();await page.reload();expect(await page.evaluate(()=>DDXStore.history().length)).toBe(1);expect(await page.evaluate(()=>DDXStore.metrics(DDXStore.history()[0]).work)).toBe(18);
+ await page.goto('legs.html');expect(await page.evaluate(()=>S.ex.squat.rows[1].w)).toBe('40');expect(await page.evaluate(()=>S.ex.squat.rows[1].r)).toBe('8');expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+});
+test('compensation preview creates no fictional history and starts as one custom session',async({page})=>{await page.goto('custom.html?compensate=1');await page.getByText('Приседания со штангой',{exact:true}).click();await page.getByRole('button',{name:'Предложить план',exact:true}).click();await expect(page.locator('.plan-panel')).toContainText('Итого 18');await page.getByRole('button',{name:'Добавить предложенный план',exact:true}).click();await expect(page.locator('.plan-panel')).toContainText('18 рабочих подходов');expect(await page.evaluate(()=>DDXStore.history().length)).toBe(0);});

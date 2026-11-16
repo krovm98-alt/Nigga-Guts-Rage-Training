@@ -27,7 +27,7 @@ function catalogDescriptor(card, st) {
     tech: x.warning,
     tags: [],
     alts: [],
-    workR: x.reps,
+    workR: st.repMin || x.reps,
     rest: 90,
     restWu: 60,
     restEx: 90,
@@ -49,6 +49,10 @@ function initCatalogSession(state) {
         )
         .filter(Boolean),
     );
+  }
+  for (const e of EX) if (state.ex[e.id] && e.type === "sets") {
+    e.rows = state.ex[e.id].rows.map((r,i)=>({...r,wu:i===0}));
+    e.workR = state.ex[e.id].repMin || e.workR;
   }
 }
 function openCatalog(target) {
@@ -192,15 +196,42 @@ function selectCatalog(target, x, n) {
   if (target) cards[EX.indexOf(target)] = card;
   else cards.push(card);
   S.cards = cards;
+  SessionProgression.prefill({exerciseId:x.id}, S.ex[id]);
   if (save()) location.reload();
 }
 function catalogControls(e, d) {
+  const body = d.querySelector(".ex-body");
+  const editor = document.createElement("details");
+  editor.className = "plan-editor";
+  const summary = document.createElement("summary");
+  summary.textContent = "Редактировать план";
+  editor.append(summary);
+  body.prepend(editor);
+  const st = S.ex[e.id];
+  if (e.type === "sets") {
+    const count = document.createElement("input");
+    count.type = "number"; count.min = 1; count.max = 10;
+    count.value = st.rows.length - 1;
+    count.setAttribute("aria-label", "Рабочих подходов");
+    const reps = document.createElement("input");
+    reps.value = st.repMin ? st.repMin + "–" + st.repMax : String(e.workR || 8);
+    reps.setAttribute("aria-label", "Целевые повторы");
+    const apply = document.createElement("button");
+    apply.textContent = "Сохранить план";
+    apply.onclick = () => {
+      try { AdaptivePlan.resize(st, Number(count.value), reps.value); }
+      catch (err) { toast(err.message); return; }
+      S.cards = layoutCards();
+      if (save()) location.reload();
+    };
+    editor.append("Рабочих подходов", count, "Целевые повторы (8–10)", reps, apply);
+  }
   const b = document.createElement("button");
   b.textContent = "Заменить упражнение";
   b.onclick = () => openCatalog(e);
-  d.querySelector(".ex-body").prepend(b);
+  editor.append(b);
   if (e.catalog) renderWeightRecommendation(e, d);
-  if (e.added) {
+  if (true) {
     for (const [text, delta] of [
       ["Переместить выше", -1],
       ["Переместить ниже", 1],
@@ -216,10 +247,10 @@ function catalogControls(e, d) {
         S.cards = cards;
         if (save()) location.reload();
       };
-      d.querySelector(".ex-body").append(b);
+      editor.append(b);
     }
     const remove = document.createElement("button");
-    remove.textContent = "Удалить дополнительное упражнение";
+    remove.textContent = "Удалить упражнение";
     remove.onclick = () => {
       if (S.ex[e.id].rows.some((r) => r.d)) {
         toast("Выполненные подходы защищены");
@@ -229,7 +260,7 @@ function catalogControls(e, d) {
       delete S.ex[e.id];
       if (save()) location.reload();
     };
-    d.querySelector(".ex-body").append(remove);
+    editor.append(remove);
   }
 }
 
@@ -273,6 +304,8 @@ function renderWeightRecommendation(e, d) {
     "p",
     `${result.unit}. Источник: ${result.source}. Последний достоверный рабочий вес: ${result.base === null ? "не определён" : result.base + " кг"}.`,
   );
+  if (st.rows[0]?.d && (st.rows[0].e >= 4 || result.work.weight === null))
+    text("p", "ВНИМАНИЕ: фактическая проба отменяет прежний ориентир повышения. Проверь незавершённые рабочие веса; при тяжёлой пробе снизь нагрузку.");
   const old = st.calibration?.work;
   if (old && old.signature !== result.signature)
     text(
@@ -328,7 +361,7 @@ function renderWeightRecommendation(e, d) {
       : `${result.work.weight} кг · ${result.work.sets} рабочих подхода × ${result.work.reps} повторений`,
   );
   text("p", result.work.reason);
-  if (result.work.weight !== null && result.source.startsWith("Последняя")) {
+  if (result.work.weight !== null && st.rows[0]?.e <= 3 && result.source.startsWith("Последняя")) {
     const advice = DDXProgress.recommend(
       { exerciseId: result.exerciseId, workR: result.work.reps },
       { ...st, alt: -1, custom: "" },
