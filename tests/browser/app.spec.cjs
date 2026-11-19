@@ -75,6 +75,7 @@ test("offline navigation and reload under repository subdirectory", async ({
 test("custom replacement is text, not HTML", async ({ page }) => {
   await page.goto("push.html");
   await page.locator(".ex-head").nth(1).click();
+  await page.locator(".exercise-options > summary").nth(1).click();
   await page
     .locator(".ctext")
     .nth(1)
@@ -207,3 +208,5 @@ test("service worker update waits for confirmation and retains local data", asyn
   ).toBe("retained");
   await page.request.get("__test_revision?v=1");
 });
+
+require('./legacy-trials.cjs')(test);

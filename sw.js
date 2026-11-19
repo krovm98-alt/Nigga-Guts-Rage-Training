@@ -1,6 +1,11 @@
-const CACHE = "guts-rage-v6-adaptive-1";
+const CACHE = "guts-rage-v7-library-ux-2";
 const ASSETS = [
-  "./adaptive-plan.js", "./plan-ui.js", "./custom-data.js", "./custom.html",
+  "./exercise-weight-estimator.js",
+  "./workout-navigation.js",
+  "./adaptive-plan.js",
+  "./plan-ui.js",
+  "./custom-data.js",
+  "./custom.html",
   "./weight-calibration.js",
   "./session-progression.js",
   "./bloodstorm.js",

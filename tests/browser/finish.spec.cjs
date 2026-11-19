@@ -27,3 +27,5 @@ test("finish archives automatically and renders progress, next workout inherits 
  await expect(page.locator("#ex-dbbench input.iw").nth(1)).toHaveValue("21");
  await expect(page.locator("#ex-dbbench input.ir").nth(1)).toHaveValue("9");
 });
+
+require('./legacy-trials.cjs')(test);

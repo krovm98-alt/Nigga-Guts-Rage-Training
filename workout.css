@@ -646,3 +646,10 @@ header::before {
 .next-goal button { min-height: 44px; width: 100%; padding: 10px;
  background: #542532; color: #fff; border: 1px solid #b54658; border-radius: 7px; }
 #scrFinal details.notice { margin: 12px 0; }
+.workout-jump{position:fixed;right:12px;bottom:76px;z-index:45;padding:12px 18px;background:#a3182b;color:white;border:1px solid #f26676;border-radius:14px;box-shadow:0 4px 20px #0008;font-weight:800}
+.workout-sheet{position:fixed;inset:auto 0 0;width:min(100%,620px);max-height:85dvh;margin:0 auto;padding:16px 16px calc(24px + env(safe-area-inset-bottom));overflow:auto;border:1px solid #88333d;border-radius:22px 22px 0 0;background:#141118;color:#eee;box-sizing:border-box}
+.workout-sheet::backdrop{background:#000a}.jump-row{display:flex;gap:6px;padding:8px 0;border-bottom:1px solid #422630}.jump-row>button:first-child{flex:1;text-align:left;min-width:0}.jump-row button{min-height:44px;white-space:normal}.drag-handle{touch-action:none;min-width:44px}.drop-target{outline:2px solid #fa6279}.dragging{opacity:.65}.exercise-options{margin-top:12px}.exercise-options summary{cursor:pointer;padding:10px}.plan-editor label{display:block;padding:8px}.ex{scroll-margin-top:20px}.catalog-dialog{max-width:100%;box-sizing:border-box}.edit-row{flex-wrap:wrap}
+
+.sheet-grip{text-align:center;touch-action:none;padding:10px;color:#b67880;cursor:grab}
+
+.workout-sheet button{background:#281a24;color:#f6e9ec;border:1px solid #69323e;border-radius:10px;padding:10px 12px;font:inherit;font-weight:600;line-height:1.35;cursor:pointer}.workout-sheet>button{margin:4px 4px 8px 0}.workout-sheet button:hover,.workout-sheet button:focus-visible{background:#4b2332;outline:2px solid #e65a72}.workout-sheet button:disabled{opacity:.35}.workout-sheet>p{font-size:14px;color:#d9a7b4;margin:8px 0 12px}.jump-row{align-items:stretch}.jump-row button:first-child{font-size:14px}.workout-sheet>.sheet-grip{margin-top:-10px}

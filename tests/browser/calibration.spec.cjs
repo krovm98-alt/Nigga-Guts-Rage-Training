@@ -4,7 +4,7 @@ test("trial is prefilled without a button and effort changes the suggested work 
   await page.evaluate(() => {
     const row = (w, e=2) => ({w:String(w),r:"8",e,d:true});
     localStorage.setItem("ddx_history_v1", JSON.stringify([{
-      id:"stable-test",kind:"push",start:1000,end:2000,exercises:[{
+      id:"stable-test",kind:"push",start:Date.now()-3600000,end:Date.now()-1000,exercises:[{
         id:"dbbench",exerciseId:"db_bench",name:"Жим",
         rows:[row(12),row(21),row(21),row(21)]
       }]
@@ -95,3 +95,5 @@ test("bloodstorm SVG droplets move, lightning branches render at all Android wid
       .evaluate((e) => getComputedStyle(e).animationPlayState),
   ).toBe("paused");
 });
+
+require('./legacy-trials.cjs')(test);

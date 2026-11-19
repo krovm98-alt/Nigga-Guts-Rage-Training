@@ -23,7 +23,12 @@ const el = (id) => document.getElementById(id);
 function show() {
   const h = hist().sort((a, b) => b.start - a.start);
   const weekly = el("weekly");
-  if (weekly) weekly.textContent = "Рабочие подходы за текущую неделю · " + Object.entries(AdaptivePlan.weekly(h)).map(([g,n])=>g+": "+n).join(" · ");
+  if (weekly)
+    weekly.textContent =
+      "Рабочие подходы за текущую неделю · " +
+      Object.entries(AdaptivePlan.weekly(h))
+        .map(([g, n]) => g + ": " + n)
+        .join(" · ");
   el("count").textContent = h.length;
   el("sets").textContent = h.reduce((n, x) => n + DDXStore.metrics(x).work, 0);
   el("last").textContent = h.length
@@ -52,13 +57,34 @@ function show() {
       DDXStore.metrics(x).work +
       " рабочих подходов · " +
       Math.round(((x.end || x.start) - x.start) / 60000) +
-      " мин · " + [...new Set(x.exercises.filter(e=>DDXStore.workRows(e).length).map(e=>DDXCatalog.get(DDXCatalog.identity(e))?.group).filter(Boolean))].join(", ") + " · отказов: " +
+      " мин · " +
+      [
+        ...new Set(
+          x.exercises
+            .filter((e) => DDXStore.workRows(e).length)
+            .map((e) => DDXCatalog.get(DDXCatalog.identity(e))?.group)
+            .filter(Boolean),
+        ),
+      ].join(", ") +
+      " · отказов: " +
       (x.stats?.kk || 0);
     const approvals = document.createElement("p");
-    const log = safeParse(localStorage.getItem("ddx_progression_approvals_v1"), []);
-    approvals.textContent = (Array.isArray(log) ? log : []).filter(g=>g.sourceSessionId===x.id)
-      .map(g=>"Подтверждена цель: " + (DDXCatalog.get(g.exerciseId)?.name || g.exerciseId) +
-        " · " + g.weight + " кг × " + g.reps).join("; ");
+    const log = safeParse(
+      localStorage.getItem("ddx_progression_approvals_v1"),
+      [],
+    );
+    approvals.textContent = (Array.isArray(log) ? log : [])
+      .filter((g) => g.sourceSessionId === x.id)
+      .map(
+        (g) =>
+          "Подтверждена цель: " +
+          (DDXCatalog.get(g.exerciseId)?.name || g.exerciseId) +
+          " · " +
+          g.weight +
+          " кг × " +
+          g.reps,
+      )
+      .join("; ");
     const pre = document.createElement("pre");
     pre.textContent = DDXStore.displayText(x.report || "");
     const b = document.createElement("button");
@@ -172,11 +198,75 @@ function editSession(original) {
     check.onchange = () => (e.skipped = check.checked);
     skip.append(check, " Пропущено");
     field.append(skip);
+    e.rows = DDXStore.typedRows(e.rows);
+    const identity = document.createElement("select");
+    identity.setAttribute("aria-label", "Фактическое упражнение");
+    const unknown = document.createElement("option");
+    unknown.value = "";
+    unknown.textContent = "Оставить исходное название";
+    identity.append(unknown);
+    for (const x of DDXCatalog.items) {
+      const o = document.createElement("option");
+      o.value = x.id;
+      o.textContent = x.name;
+      identity.append(o);
+    }
+    identity.value = DDXCatalog.identity(e) || "";
+    identity.onchange = () => {
+      const x = DDXCatalog.get(identity.value);
+      if (x) {
+        e.previousExerciseId = e.exerciseId;
+        e.exerciseId = x.id;
+        e.name = x.name;
+        e.replacement = "";
+        e.unit = x.unit;
+        e.equipment = x.equipment;
+        e.side = false;
+      }
+    };
+    field.append(identity);
     e.rows.forEach((r, i) => {
       const line = document.createElement("div");
       line.className = "edit-row";
       const label = document.createElement("span");
-      label.textContent = i === 0 ? "Разминка / задача" : "Подход " + i;
+      label.textContent = "Подход " + (i + 1);
+      const type = document.createElement("select");
+      type.setAttribute("aria-label", "Тип подхода");
+      for (const [v, t] of [
+        ["trial", "Пробный"],
+        ["working", "Рабочий"],
+        ["task", "Задача"],
+      ]) {
+        const o = document.createElement("option");
+        o.value = v;
+        o.textContent = t;
+        type.append(o);
+      }
+      type.value = r.type;
+      type.onchange = () => (r.type = type.value);
+      line.append(type);
+      const skipRow = document.createElement("input");
+      skipRow.type = "checkbox";
+      skipRow.checked = !!r.skipped;
+      skipRow.setAttribute("aria-label", "Пропустить подход");
+      skipRow.onchange = () => (r.skipped = skipRow.checked);
+      line.append(skipRow);
+      if (r.type === "trial") {
+        const remove = document.createElement("button");
+        remove.type = "button";
+        remove.textContent = "Удалить ошибочную пробу";
+        remove.onclick = () => {
+          if (
+            confirm(
+              "Удалить ошибочную пробу? Исходная запись сохранится при сохранении изменений.",
+            )
+          ) {
+            e.rows = e.rows.filter((v) => v !== r);
+            line.remove();
+          }
+        };
+        line.append(remove);
+      }
       line.append(label);
       for (const [key, text] of [
         ["w", "Вес"],
@@ -227,7 +317,8 @@ function editSession(original) {
         draft.exercises.some(
           (e) =>
             DDXStore.workRows(e).length !==
-              e.rows.slice(1).filter((r) => r.d).length && !e.skipped,
+              DDXStore.plannedRows(e).filter((r) => r.d && !r.skipped).length &&
+            !e.skipped,
         )
       )
         throw Error("Проверь вес, повторы и сложность");
@@ -257,8 +348,14 @@ function editSession(original) {
             (e.skipped
               ? "пропущено"
               : e.rows
-                  .filter((r) => r.d)
-                  .map((r) => r.w + "×" + r.r + " · сложность " + r.e)
+                  .filter((r) => r.d || r.skipped)
+                  .map(
+                    (r) =>
+                      (r.type === "trial" ? "Проба: " : "Рабочий: ") +
+                      (r.skipped
+                        ? "пропущен"
+                        : r.w + "×" + r.r + " · сложность " + r.e),
+                  )
                   .join(", ")) +
             " " +
             (e.notes || ""),
@@ -271,6 +368,21 @@ function editSession(original) {
       );
       h[at] = draft;
       localStorage.setItem(HKEY, JSON.stringify(h));
+      let targets;
+      try {
+        targets =
+          JSON.parse(localStorage.getItem("ddx_next_targets_v1") || "{}") || {};
+      } catch {
+        targets = {};
+      }
+      const ids = new Set(
+        [...original.exercises, ...draft.exercises].map((e) =>
+          DDXCatalog.identity(e),
+        ),
+      );
+      for (const id of Object.keys(targets))
+        if (ids.has(id)) delete targets[id];
+      localStorage.setItem("ddx_next_targets_v1", JSON.stringify(targets));
       form.remove();
       show();
     } catch (err) {
