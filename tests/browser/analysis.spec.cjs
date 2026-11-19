@@ -67,3 +67,5 @@ test("animated header and local analysis work at 320px, reduced motion, restore 
     "Локальный разбор",
   );
 });
+
+require('./legacy-trials.cjs')(test);

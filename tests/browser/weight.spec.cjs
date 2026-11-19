@@ -22,7 +22,7 @@ test("explicit confirmation, cancellation, completed rows and manual edits survi
   await expect(rows.nth(1)).toHaveValue("");
   await page.evaluate(()=>{
     const row={w:"50",r:"8",e:3,d:true};
-    localStorage.setItem(DDXStore.HKEY,JSON.stringify([{id:"fixture",kind:"push",start:1000,end:2000,exercises:[{id:"smith",exerciseId:"smith_bench",name:"Смит",rows:[{...row,w:"30"},row,row,row]}]}]));
+    localStorage.setItem(DDXStore.HKEY,JSON.stringify([{id:"fixture",kind:"push",start:Date.now()-3600000,end:Date.now()-1000,exercises:[{id:"smith",exerciseId:"smith_bench",name:"Смит",rows:[{...row,w:"30"},row,row,row]}]}]));
   });
 
   await rows.nth(0).fill("30");
@@ -76,3 +76,5 @@ test("repeat replacement clears applied weight and uncertain sources have no app
     page.locator("#ex-dbbench .weight-recommendation button"),
   ).toHaveCount(0);
 });
+
+require('./legacy-trials.cjs')(test);

@@ -24,7 +24,7 @@ function catalogDescriptor(card, st) {
     type: "sets",
     meta: x.unit,
     last: "",
-    tech: x.warning,
+    tech: x.technique + " " + x.warning,
     tags: [],
     alts: [],
     workR: st.repMin || x.reps,
@@ -32,7 +32,10 @@ function catalogDescriptor(card, st) {
     restWu: 60,
     restEx: 90,
     catalog: true,
-    rows: st.rows.map((r, i) => ({ ...r, wu: i === 0 })),
+    rows: st.rows.map((r, i) => ({
+      ...r,
+      wu: DDXStore.rowType(r, i) === "trial",
+    })),
   };
 }
 function initCatalogSession(state) {
@@ -50,10 +53,14 @@ function initCatalogSession(state) {
         .filter(Boolean),
     );
   }
-  for (const e of EX) if (state.ex[e.id] && e.type === "sets") {
-    e.rows = state.ex[e.id].rows.map((r,i)=>({...r,wu:i===0}));
-    e.workR = state.ex[e.id].repMin || e.workR;
-  }
+  for (const e of EX)
+    if (state.ex[e.id] && e.type === "sets") {
+      e.rows = state.ex[e.id].rows.map((r, i) => ({
+        ...r,
+        wu: DDXStore.rowType(r, i) === "trial",
+      }));
+      e.workR = state.ex[e.id].repMin || e.workR;
+    }
 }
 function openCatalog(target) {
   if (target && S.ex[target.id].rows.some((r) => r.d)) {
@@ -89,7 +96,22 @@ function openCatalog(target) {
   label.append(count);
   const results = document.createElement("div");
   results.setAttribute("aria-live", "polite");
-  dialog.append(heading, close, search, filter, label, results);
+  const equipment = document.createElement("select");
+  equipment.setAttribute("aria-label", "Оборудование");
+  for (const v of [
+    "",
+    ...new Set(DDXCatalog.items.map((x) => x.equipmentType)),
+  ]) {
+    const o = document.createElement("option");
+    o.value = v;
+    o.textContent = v || "Всё оборудование";
+    equipment.append(o);
+  }
+  const favorites = document.createElement("input");
+  favorites.type = "checkbox";
+  const fl = document.createElement("label");
+  fl.append(favorites, " Избранное");
+  dialog.append(heading, close, search, filter, equipment, fl, label, results);
   function draw() {
     results.replaceChildren();
     const same = DDXCatalog.get(
@@ -98,6 +120,9 @@ function openCatalog(target) {
     const found = DDXCatalog.items.filter(
       (x) =>
         (!filter.value || x.group === filter.value) &&
+        (!equipment.value || x.equipmentType === equipment.value) &&
+        (!favorites.checked ||
+          ExerciseEstimator.preferences()[x.id]?.favorite) &&
         x.name
           .toLocaleLowerCase("ru")
           .includes(search.value.toLocaleLowerCase("ru")),
@@ -131,12 +156,26 @@ function openCatalog(target) {
           }
           selectCatalog(target, x, n);
         };
-        card.append(name, info, choose);
+        const star = document.createElement("button");
+        star.textContent = ExerciseEstimator.preferences()[x.id]?.favorite
+          ? "★ Убрать из избранного"
+          : "☆ В избранное";
+        star.onclick = () => {
+          ExerciseEstimator.updatePreference(x.id, {
+            favorite: !ExerciseEstimator.preferences()[x.id]?.favorite,
+          });
+          draw();
+        };
+        card.append(name, info, star, choose);
         results.append(card);
       }
     }
   }
-  search.oninput = filter.onchange = draw;
+  search.oninput =
+    filter.onchange =
+    equipment.onchange =
+    favorites.onchange =
+      draw;
   const previous = document.activeElement;
   dialog.onclose = () => {
     dialog.remove();
@@ -172,7 +211,9 @@ function selectCatalog(target, x, n) {
   if (target && S.ex[target.id].rows.some((r) => r.d)) return;
   const id = target?.id || "extra_" + crypto.randomUUID();
   S.ex[id] = {
-    rows: Array.from({ length: n + 1 }, (_, i) => ({
+    trialEnabled: !!ExerciseEstimator.preferences()[x.id]?.trialEnabled,
+    rows: Array.from({ length: n }, (_, i) => ({
+      type: "working",
       w: "",
       r: String(x.reps),
       e: 0,
@@ -186,6 +227,14 @@ function selectCatalog(target, x, n) {
     why: [],
     side: false,
   };
+  if (S.ex[id].trialEnabled)
+    S.ex[id].rows.unshift({
+      type: "trial",
+      w: "",
+      r: String(x.reps),
+      e: 0,
+      d: false,
+    });
   const cards = layoutCards(),
     card = {
       sessionExerciseId: id,
@@ -196,7 +245,7 @@ function selectCatalog(target, x, n) {
   if (target) cards[EX.indexOf(target)] = card;
   else cards.push(card);
   S.cards = cards;
-  SessionProgression.prefill({exerciseId:x.id}, S.ex[id]);
+  SessionProgression.prefill({ exerciseId: x.id }, S.ex[id]);
   if (save()) location.reload();
 }
 function catalogControls(e, d) {
@@ -206,12 +255,14 @@ function catalogControls(e, d) {
   const summary = document.createElement("summary");
   summary.textContent = "Редактировать план";
   editor.append(summary);
-  body.prepend(editor);
+  body.append(editor);
   const st = S.ex[e.id];
   if (e.type === "sets") {
     const count = document.createElement("input");
-    count.type = "number"; count.min = 1; count.max = 10;
-    count.value = st.rows.length - 1;
+    count.type = "number";
+    count.min = 1;
+    count.max = 10;
+    count.value = DDXStore.plannedRows(st).length;
     count.setAttribute("aria-label", "Рабочих подходов");
     const reps = document.createElement("input");
     reps.value = st.repMin ? st.repMin + "–" + st.repMax : String(e.workR || 8);
@@ -219,12 +270,23 @@ function catalogControls(e, d) {
     const apply = document.createElement("button");
     apply.textContent = "Сохранить план";
     apply.onclick = () => {
-      try { AdaptivePlan.resize(st, Number(count.value), reps.value); }
-      catch (err) { toast(err.message); return; }
+      try {
+        AdaptivePlan.resize(st, Number(count.value), reps.value);
+      } catch (err) {
+        toast(err.message);
+        return;
+      }
       S.cards = layoutCards();
       if (save()) location.reload();
     };
-    editor.append("Рабочих подходов", count, "Целевые повторы (8–10)", reps, apply);
+    editor.append(
+      "Рабочих подходов",
+      count,
+      "Целевые повторы (8–10)",
+      reps,
+      apply,
+    );
+    addTrialControls(e, d, editor);
   }
   const b = document.createElement("button");
   b.textContent = "Заменить упражнение";
@@ -239,13 +301,7 @@ function catalogControls(e, d) {
       const b = document.createElement("button");
       b.textContent = text;
       b.onclick = () => {
-        const cards = layoutCards(),
-          i = EX.indexOf(e),
-          j = i + delta;
-        if (j < 0 || j >= cards.length) return;
-        [cards[i], cards[j]] = [cards[j], cards[i]];
-        S.cards = cards;
-        if (save()) location.reload();
+        window.moveWorkoutExercise?.(e.id, EX.indexOf(e) + delta);
       };
       editor.append(b);
     }
@@ -293,6 +349,39 @@ function renderWeightRecommendation(e, d) {
     el.textContent = value;
     box.append(el);
   }
+  if (!st.trialEnabled) {
+    let h;
+    try {
+      h = DDXStore.history();
+    } catch {
+      h = [];
+    }
+    const estimate = ExerciseEstimator.estimateWorkingWeight({
+      exerciseId: result.exerciseId,
+      history: h,
+      targetReps: st.repMin,
+    });
+    text(
+      "p",
+      st.workingSource
+        ? `Ориентир: ${st.workingSource.weight} кг · ${st.workingSource.source} · достоверность ${{ high: "высокая", medium: "средняя", low: "низкая" }[st.workingSource.confidence] || st.workingSource.confidence}`
+        : estimate.reason,
+    );
+    if (DDXStore.plannedRows(st).some((r) => r.manualWeight))
+      text("p", "Рабочие значения изменены вручную.");
+    if (estimate.range)
+      text(
+        "p",
+        `Наблюдавшиеся веса близких упражнений: ${estimate.range.join("–")} кг · низкая достоверность, требуется проба.`,
+      );
+    if (estimate.requiresCalibration) {
+      const b = document.createElement("button");
+      b.textContent = "Проверить вес пробным подходом";
+      b.onclick = () => toggleTrial(e, true);
+      box.append(b);
+    }
+    return;
+  }
   text("b", "Пробный подход");
   text(
     "p",
@@ -304,8 +393,14 @@ function renderWeightRecommendation(e, d) {
     "p",
     `${result.unit}. Источник: ${result.source}. Последний достоверный рабочий вес: ${result.base === null ? "не определён" : result.base + " кг"}.`,
   );
-  if (st.rows[0]?.d && (st.rows[0].e >= 4 || result.work.weight === null))
-    text("p", "ВНИМАНИЕ: фактическая проба отменяет прежний ориентир повышения. Проверь незавершённые рабочие веса; при тяжёлой пробе снизь нагрузку.");
+  if (
+    DDXStore.trialRow(st)?.d &&
+    (DDXStore.trialRow(st).e >= 4 || result.work.weight === null)
+  )
+    text(
+      "p",
+      "ВНИМАНИЕ: фактическая проба отменяет прежний ориентир повышения. Проверь незавершённые рабочие веса; при тяжёлой пробе снизь нагрузку.",
+    );
   const old = st.calibration?.work;
   if (old && old.signature !== result.signature)
     text(
@@ -361,7 +456,11 @@ function renderWeightRecommendation(e, d) {
       : `${result.work.weight} кг · ${result.work.sets} рабочих подхода × ${result.work.reps} повторений`,
   );
   text("p", result.work.reason);
-  if (result.work.weight !== null && st.rows[0]?.e <= 3 && result.source.startsWith("Последняя")) {
+  if (
+    result.work.weight !== null &&
+    DDXStore.trialRow(st)?.e <= 3 &&
+    result.source.startsWith("Последняя")
+  ) {
     const advice = DDXProgress.recommend(
       { exerciseId: result.exerciseId, workR: result.work.reps },
       { ...st, alt: -1, custom: "" },
@@ -375,7 +474,7 @@ function renderWeightRecommendation(e, d) {
   );
   if (
     result.work.weight !== null &&
-    st.rows.slice(1).some((r) => !r.d && !r.manualWeight)
+    DDXStore.plannedRows(st).some((r) => !r.d && !r.manualWeight)
   )
     button("Применить рабочий вес", "work");
 }
@@ -387,3 +486,109 @@ window.addEventListener("storage", (ev) => {
   if (ev.key === DDXStore.HKEY) refreshWeightRecommendations();
 });
 window.addEventListener("focus", refreshWeightRecommendations);
+
+function toggleTrial(e, enabled) {
+  const st = S.ex[e.id],
+    trial = DDXStore.trialRow(st);
+  if (
+    !enabled &&
+    trial?.d &&
+    !confirm(
+      "Сохранить выполненную пробу в истории и выключить пробный подход? Отмена оставит пробу включённой.",
+    )
+  )
+    return;
+  st.trialEnabled = enabled;
+  if (enabled && !trial)
+    st.rows.unshift({
+      type: "trial",
+      w: "",
+      r: String(e.workR || 8),
+      e: 0,
+      d: false,
+    });
+  const id = DDXCatalog.identity({
+    id: e.id,
+    exerciseId: e.exerciseId,
+    replacement: repName(e),
+  });
+  if (id) ExerciseEstimator.updatePreference(id, { trialEnabled: enabled });
+  if (enabled) suggestTrialDefault(e, st);
+  save();
+  renderRows(e);
+  renderCal(e);
+  refresh(e);
+  updBar();
+  const check = document.getElementById("trial-toggle-" + e.id);
+  if (check) check.checked = enabled;
+}
+function addTrialControls(e, d, editor) {
+  const st = S.ex[e.id],
+    label = document.createElement("label"),
+    check = document.createElement("input");
+  check.type = "checkbox";
+  check.id = "trial-toggle-" + e.id;
+  check.checked = !!st.trialEnabled;
+  check.onchange = () => {
+    toggleTrial(e, check.checked);
+    check.checked = !!st.trialEnabled;
+  };
+  label.append(check, " Пробный подход");
+  editor.append(label);
+  const ref = document.createElement("button");
+  ref.textContent = "Сохранить рабочий ориентир";
+  ref.onclick = () => {
+    const id = DDXCatalog.identity({
+        id: e.id,
+        exerciseId: e.exerciseId,
+        replacement: repName(e),
+      }),
+      x = DDXCatalog.get(id),
+      r = DDXStore.plannedRows(st).find((r) => r.w !== "" && !r.skipped),
+      w = DDXStore.num(r?.w);
+    if (!x || !Number.isFinite(w) || w < 0) {
+      toast("Сначала укажи рабочий вес");
+      return;
+    }
+    if (
+      !confirm(
+        "Сохранить " +
+          w +
+          " " +
+          x.unit +
+          " как ручной ориентир? Это не выполненный результат.",
+      )
+    )
+      return;
+    ExerciseEstimator.updatePreference(id, {
+      reference: { weight: w, unit: x.unit, equipment: x.equipment },
+    });
+    toast("Ориентир сохранён");
+  };
+  editor.append(ref);
+  DDXStore.plannedRows(st).forEach((r, i) => {
+    const l = document.createElement("label"),
+      c = document.createElement("input");
+    c.type = "checkbox";
+    c.checked = !!r.skipped;
+    c.onchange = () => {
+      if (
+        c.checked &&
+        r.d &&
+        !confirm(
+          "Исключить выполненный подход из расчётов? Значения сохранятся.",
+        )
+      ) {
+        c.checked = false;
+        return;
+      }
+      r.skipped = c.checked;
+      save();
+      renderRows(e);
+      refresh(e);
+      updBar();
+    };
+    l.append(c, " Пропустить рабочий подход " + (i + 1));
+    editor.append(l);
+  });
+}

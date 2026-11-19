@@ -31,3 +31,5 @@ test("real workout appears once in history and analytics with clean branding at 
   await page.goto("analytics.html");
   expect(await page.locator("#exercise option").count()).toBe(6);
 });
+
+require('./legacy-trials.cjs')(test);

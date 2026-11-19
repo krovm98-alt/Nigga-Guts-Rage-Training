@@ -12,6 +12,8 @@
   const validRow = (r) =>
     object(r) &&
     typeof r.d === "boolean" &&
+    (r.type === undefined || ["trial", "working", "task"].includes(r.type)) &&
+    (r.skipped === undefined || typeof r.skipped === "boolean") &&
     ["string", "number"].includes(typeof r.w) &&
     ["string", "number"].includes(typeof r.r) &&
     Number.isInteger(r.e) &&
@@ -56,7 +58,10 @@
   function migrateState(input) {
     if (!object(input) || !object(input.ex)) throw Error("Некорректная сессия");
     const result = JSON.parse(JSON.stringify(input));
-    if (result.name !== undefined && (typeof result.name !== "string" || result.name.length>100))
+    if (
+      result.name !== undefined &&
+      (typeof result.name !== "string" || result.name.length > 100)
+    )
       throw Error("Некорректное название тренировки");
     for (const key of ["start", "end"])
       if (
@@ -74,8 +79,17 @@
     for (const e of Object.values(result.ex)) {
       if (!object(e) || !Array.isArray(e.rows) || !e.rows.every(validRow))
         throw Error("Некорректные подходы");
-      if (["repMin","repMax"].some(k=>e[k]!==undefined && (!Number.isInteger(e[k])||e[k]<1||e[k]>99)) ||
-          (e.repMin!==undefined && e.repMax<e.repMin)) throw Error("Некорректный диапазон повторений");
+      if (
+        ["repMin", "repMax"].some(
+          (k) =>
+            e[k] !== undefined &&
+            (!Number.isInteger(e[k]) || e[k] < 1 || e[k] > 99),
+        ) ||
+        (e.repMin !== undefined && e.repMax < e.repMin)
+      )
+        throw Error("Некорректный диапазон повторений");
+      e.rows = typedRows(e.rows);
+      e.trialEnabled ??= e.rows.some((r) => r.type === "trial");
       e.t ??= [];
       e.why ??= [];
       e.n ??= "";
@@ -125,12 +139,26 @@
       );
     return h;
   }
+  // Legacy interpretation is confined to this boundary; never rewrite stored history.
+  function rowType(r, i) {
+    return r.type || (i === 0 ? "trial" : "working");
+  }
+  function typedRows(rows) {
+    return rows.map((r, i) => ({ ...r, type: rowType(r, i) }));
+  }
+  function plannedRows(e) {
+    return (e.rows || []).filter((r, i) => rowType(r, i) === "working");
+  }
+  function trialRow(e) {
+    return (e.rows || []).find((r, i) => rowType(r, i) === "trial");
+  }
   function workRows(e) {
     return e.skipped
       ? []
       : (e.rows || []).filter(
           (r, i) =>
-            i > 0 &&
+            rowType(r, i) === "working" &&
+            !r.skipped &&
             r.d &&
             Number.isFinite(num(r.w)) &&
             num(r.w) >= 0 &&
@@ -238,6 +266,10 @@
     HKEY,
     num,
     history,
+    rowType,
+    typedRows,
+    plannedRows,
+    trialRow,
     workRows,
     metrics,
     sessionKey,

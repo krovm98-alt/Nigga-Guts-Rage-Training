@@ -36,7 +36,10 @@
       result.attention.push(
         `Замен упражнений: ${replacements}. Сравнивай результаты фактических упражнений; замена сама по себе не означает плохую тренировку.`,
       );
-    if (session.kind === "custom") result.good.push("Состав комбинированной тренировки выбран индивидуально; объём сравнивается отдельно от прогресса упражнений.");
+    if (session.kind === "custom")
+      result.good.push(
+        "Состав комбинированной тренировки выбран индивидуально; объём сравнивается отдельно от прогресса упражнений.",
+      );
     if (skips && session.kind !== "custom")
       result.attention.push(
         `Пропущено упражнений: ${skips}; причины пропусков учитывай при планировании.`,
@@ -54,14 +57,15 @@
     for (const e of session.exercises) {
       if (
         e.skipped ||
-        (!e.rows.slice(1).length && !DDXCatalog.get(DDXCatalog.identity(e)))
+        (!DDXStore.plannedRows(e).length &&
+          !DDXCatalog.get(DDXCatalog.identity(e)))
       )
         continue;
       const id = DDXCatalog.identity(e),
         catalog = DDXCatalog.get(id),
         name = catalog?.name || e.replacement || e.name;
       const rows = DDXStore.workRows(e),
-        planned = e.rows.slice(1);
+        planned = DDXStore.plannedRows(e);
       const rec = DDXCatalog.reliable(id, {}, [{ ...session, exercises: [e] }]);
       const weights = rows.map((r) => DDXStore.num(r.w));
       const stable =
@@ -76,7 +80,12 @@
         result.good.push(
           `${name}: ${rows.length} рабочих подхода на ${weights[0]} кг; вес удержан стабильно.`,
         );
-      if (rows.length && !e.rows[0]?.d)
+      if (
+        e.trialEnabled !== false &&
+        rows.length &&
+        DDXStore.trialRow(e) &&
+        !DDXStore.trialRow(e).d
+      )
         result.attention.push(
           `${name}: пробный подход не отмечен; его выполнение неизвестно.`,
         );
@@ -86,15 +95,28 @@
           `${name}: не повышай нагрузку; ${/Боль|Дискомфорт/i.test(rec.reason) ? "прекрати болезненное движение." : "закрепи посильные ровные подходы."}`,
         );
       } else if (rec.source === "history") {
-        const previousExercise = earlier.flatMap(s=>s.exercises.filter(x=>DDXCatalog.identity(x)===id && !x.skipped))[0];
-        const reduced = planned.length < Math.max(3, previousExercise?.rows.length-1 || 0);
+        const previousExercise = earlier.flatMap((s) =>
+          s.exercises.filter(
+            (x) => DDXCatalog.identity(x) === id && !x.skipped,
+          ),
+        )[0];
+        const reduced =
+          planned.length <
+          Math.max(
+            3,
+            (previousExercise
+              ? DDXStore.plannedRows(previousExercise).length
+              : 0) || 0,
+          );
         const ceiling = e.repMax || (catalog.reps >= 12 ? 12 : 10);
         result.next.push(
-          reduced ? `${name}: сокращённый объём; удерживай нагрузку, повышение требует полного объёма.` : rec.reps >= ceiling
-            ? `${name}: достигнут верх диапазона повторений. Следующий шаг оборудования рассмотри отдельно; без автоматического повышения.`
-            : rec.reps >= 8
-              ? `${name}: сохрани ${rec.weight} кг; попробуй добавить повторение только при сохранении техники и умеренной сложности.`
-              : `${name}: закрепи ${rec.weight} кг и посильные повторы без повышения.`,
+          reduced
+            ? `${name}: сокращённый объём; удерживай нагрузку, повышение требует полного объёма.`
+            : rec.reps >= ceiling
+              ? `${name}: достигнут верх диапазона повторений. Следующий шаг оборудования рассмотри отдельно; без автоматического повышения.`
+              : rec.reps >= 8
+                ? `${name}: сохрани ${rec.weight} кг; попробуй добавить повторение только при сохранении техники и умеренной сложности.`
+                : `${name}: закрепи ${rec.weight} кг и посильные повторы без повышения.`,
         );
       }
       const previous = earlier.flatMap((s) =>
@@ -118,9 +140,15 @@
               0,
             );
           if (oldRows.length) {
-            const weightDelta = Math.max(...weights) - Math.max(...oldRows.map(r=>DDXStore.num(r.w)));
-            const repsDelta = Math.min(...rows.map(r=>DDXStore.num(r.r))) - Math.min(...oldRows.map(r=>DDXStore.num(r.r)));
-            result.good.push(`${name}: изменение веса ${weightDelta>0?"+":""}${weightDelta} кг; минимальных повторений ${repsDelta>0?"+":""}${repsDelta}.`);
+            const weightDelta =
+              Math.max(...weights) -
+              Math.max(...oldRows.map((r) => DDXStore.num(r.w)));
+            const repsDelta =
+              Math.min(...rows.map((r) => DDXStore.num(r.r))) -
+              Math.min(...oldRows.map((r) => DDXStore.num(r.r)));
+            result.good.push(
+              `${name}: изменение веса ${weightDelta > 0 ? "+" : ""}${weightDelta} кг; минимальных повторений ${repsDelta > 0 ? "+" : ""}${repsDelta}.`,
+            );
             const delta = Math.round((volume - oldVolume) * 10) / 10;
             const line = `${name}: условный объём ${Math.round(volume * 10) / 10} кг·повт., ${delta > 0 ? "+" : ""}${delta} к ${new Date(previous.s.start).toLocaleDateString(context.locale || "ru-RU")}. Число подходов: ${oldRows.length} → ${rows.length}; это не оценка техники.`;
             (delta > 0 ? result.good : result.attention).push(line);

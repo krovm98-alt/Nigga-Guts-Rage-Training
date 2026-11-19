@@ -12,8 +12,11 @@
           text: rec.reason + ". Укажи нагрузку вручную; повышение отключено.",
         };
       if (window.SessionProgression) {
-        const goal = SessionProgression.evaluate(rec.last.s, history()).find(g=>g.exerciseId===catalogId);
-        if (goal?.kind === "volume") return {text:goal.reason,weight:goal.weight,reps:goal.reps};
+        const goal = SessionProgression.evaluate(rec.last.s, history()).find(
+          (g) => g.exerciseId === catalogId,
+        );
+        if (goal?.kind === "volume")
+          return { text: goal.reason, weight: goal.weight, reps: goal.reps };
       }
       const ceiling = st.repMax || (e.workR >= 12 ? 12 : 10);
       if (rec.reps < 8)
@@ -81,8 +84,8 @@
       };
     const rows = workRows(x);
     if (
-      rows.length !== (st.rows ? st.rows.length - 1 : 3) ||
-      x.rows.slice(1).some((r) => !r.d)
+      rows.length !== (st.rows ? DDXStore.plannedRows(st).length : 3) ||
+      DDXStore.plannedRows(x).some((r) => !r.d)
     )
       return { text: "Неполные подходы: повышение нагрузки не предлагается." };
     const w = num(rows[0].w),

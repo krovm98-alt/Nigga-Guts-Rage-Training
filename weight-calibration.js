@@ -31,106 +31,229 @@
   };
   const number = DDXStore.num;
   function evaluate(exerciseId, state, history) {
-    const x = DDXCatalog.get(exerciseId), actual = state.rows?.[0];
-    const reliable = DDXCatalog.reliable(exerciseId, { ...state, alt:-1, custom:"" }, history);
+    const x = DDXCatalog.get(exerciseId),
+      actual = state.trialEnabled === false ? null : DDXStore.trialRow(state);
+    const reliable = DDXCatalog.reliable(
+      exerciseId,
+      { ...state, alt: -1, custom: "" },
+      history,
+    );
     const recent = reliable.last?.e;
-    const completed = (recent?.rows || []).slice(1).filter(r =>
-      r.d && Number.isFinite(number(r.w)) && number(r.w) > 0).map(r => number(r.w));
+    const completed = DDXStore.plannedRows(recent || {})
+      .filter((r) => r.d && Number.isFinite(number(r.w)) && number(r.w) > 0)
+      .map((r) => number(r.w));
     const pain = /(боль|болит|дискомфорт|чувствуется)/i.test(
-      [state.n,...(state.t||[]),...(state.why||[]),recent?.notes,
-       ...(recent?.tags||[]),...(recent?.why||[])].join(" "));
-    const incompatible = !x || state.side || state.skip || state.custom ||
-      (state.alt != null && state.alt >= 0) || exerciseId === "lateral_delt_machine" ||
-      !!recent?.side || !!(recent?.unit && recent.unit !== x.unit) ||
+      [
+        state.n,
+        ...(state.t || []),
+        ...(state.why || []),
+        recent?.notes,
+        ...(recent?.tags || []),
+        ...(recent?.why || []),
+      ].join(" "),
+    );
+    const incompatible =
+      !x ||
+      state.side ||
+      state.skip ||
+      state.custom ||
+      (state.alt != null && state.alt >= 0) ||
+      exerciseId === "lateral_delt_machine" ||
+      !!recent?.side ||
+      !!(recent?.unit && recent.unit !== x.unit) ||
       !!(recent?.equipment && recent.equipment !== x.equipment);
     const result = {
-      exerciseId, unit:x?.unit || "Единица требует уточнения",
-      base:reliable.weight, source:reliable.source === "history" ? "Последняя тренировка" : "Исходный ориентир",
-      trial:{weight:null,reps:8,reason:"Вес требует уточнения"},
-      work:{weight:null,reps:state.repMin||x?.reps||8,sets:Math.max(0,(state.rows?.length||1)-1),
-        confidence:"недостаточно данных",reason:"Выполни пробный подход и оцени усилие."},
-      actual:actual ? {...actual} : null,
+      exerciseId,
+      unit: x?.unit || "Единица требует уточнения",
+      base: reliable.weight,
+      source:
+        reliable.source === "history"
+          ? "Последняя тренировка"
+          : "Исходный ориентир",
+      trial: { weight: null, reps: 8, reason: "Вес требует уточнения" },
+      work: {
+        weight: null,
+        reps: state.repMin || x?.reps || 8,
+        sets: Math.max(0, DDXStore.plannedRows(state).length),
+        confidence: "недостаточно данных",
+        reason: "Выполни пробный подход и оцени усилие.",
+      },
+      actual: actual ? { ...actual } : null,
     };
     const finish = () => {
-      result.signature = JSON.stringify([exerciseId,actual,state.side,state.n,state.t,
-        state.why,reliable.weight,reliable.reason,reliable.last?.s.id,recent?.rows,
-        result.trial,result.work]);
+      result.signature = JSON.stringify([
+        exerciseId,
+        actual,
+        state.side,
+        state.n,
+        state.t,
+        state.why,
+        reliable.weight,
+        reliable.reason,
+        reliable.last?.s.id,
+        recent?.rows,
+        result.trial,
+        result.work,
+      ]);
       return result;
     };
     if (incompatible || pain) {
-      result.work.reason = "Неоднозначные единицы или дискомфорт: подбери нагрузку вручную.";
+      result.work.reason =
+        "Неоднозначные единицы или дискомфорт: подбери нагрузку вручную.";
       return finish();
     }
     const hint = hints[exerciseId];
-    const cap = completed.length ? Math.min(...completed) :
-      Number.isFinite(reliable.weight) && reliable.weight > 0 ? reliable.weight :
-      Number.isFinite(x.weight) && x.weight > 0 ? x.weight : null;
-    const prevTrial = recent?.rows?.[0];
-    const validTrial = r => r && r.d && Number.isFinite(number(r.w)) &&
-      number(r.w)>0 && (cap===null || number(r.w)<=cap) &&
-      Number.isInteger(number(r.r)) && number(r.r)>0 && r.e>=1 && r.e<=3;
-    if (hint && hint[0]>0 && (cap===null || hint[0]<=cap))
-      result.trial={weight:hint[0],reps:hint[1],reason:"Стартовый пробный вес; можно изменить"};
-    if (validTrial(prevTrial) &&
-       (result.trial.weight===null || number(prevTrial.w)<result.trial.weight))
-      result.trial={weight:number(prevTrial.w),reps:number(prevTrial.r),reason:"Ранее выполненная лёгкая проба"};
+    const cap = completed.length
+      ? Math.min(...completed)
+      : Number.isFinite(reliable.weight) && reliable.weight > 0
+        ? reliable.weight
+        : Number.isFinite(x.weight) && x.weight > 0
+          ? x.weight
+          : null;
+    const prevTrial = recent && DDXStore.trialRow(recent);
+    const validTrial = (r) =>
+      r &&
+      r.d &&
+      Number.isFinite(number(r.w)) &&
+      number(r.w) > 0 &&
+      (cap === null || number(r.w) <= cap) &&
+      Number.isInteger(number(r.r)) &&
+      number(r.r) > 0 &&
+      r.e >= 1 &&
+      r.e <= 3;
+    if (hint && hint[0] > 0 && (cap === null || hint[0] <= cap))
+      result.trial = {
+        weight: hint[0],
+        reps: hint[1],
+        reason: "Стартовый пробный вес; можно изменить",
+      };
+    if (
+      validTrial(prevTrial) &&
+      (result.trial.weight === null ||
+        number(prevTrial.w) < result.trial.weight)
+    )
+      result.trial = {
+        weight: number(prevTrial.w),
+        reps: number(prevTrial.r),
+        reason: "Ранее выполненная лёгкая проба",
+      };
     // Do not multiply a trial to guess a max. Use known loads only as ceilings.
     const historical = reliable.weight != null ? reliable.weight : cap;
-    const base = Number.isFinite(historical) && historical>0 ?
-      Math.min(historical,...(completed.length ? completed : [historical])) : null;
+    const base =
+      Number.isFinite(historical) && historical > 0
+        ? Math.min(historical, ...(completed.length ? completed : [historical]))
+        : null;
     if (!actual?.d) return finish();
-    const w=number(actual.w), reps=number(actual.r), effort=actual.e;
-    if (!Number.isFinite(w) || w<=0 || !Number.isInteger(reps) || reps<=0 ||
-      !Number.isInteger(effort) || effort<1 || effort>6) {
-      result.work.reason="Укажи фактический вес, повторы и усилие пробного подхода.";
+    const w = number(actual.w),
+      reps = number(actual.r),
+      effort = actual.e;
+    if (
+      !Number.isFinite(w) ||
+      w <= 0 ||
+      !Number.isInteger(reps) ||
+      reps <= 0 ||
+      !Number.isInteger(effort) ||
+      effort < 1 ||
+      effort > 6
+    ) {
+      result.work.reason =
+        "Укажи фактический вес, повторы и усилие пробного подхода.";
       return finish();
     }
-    if (effort===6) {
-      result.work.reason="Проба в отказ: рабочий вес подбирай вручную без повышения.";
+    if (effort === 6) {
+      result.work.reason =
+        "Проба в отказ: рабочий вес подбирай вручную без повышения.";
       return finish();
     }
-    if (base===null || w>base) {
-      result.work.reason="Нет достоверного ориентира рабочего веса. Проверь нагрузку дополнительным подходом или выбери её вручную.";
+    if (
+      state.trialEnabled === true &&
+      actual.type === "trial" &&
+      !recent &&
+      x.weight === null &&
+      effort <= 3 &&
+      reps >= result.work.reps
+    ) {
+      result.work.weight = w;
+      result.work.confidence = "низкая · фактическая проба";
+      result.work.reason =
+        "Повтори проверенный пробой вес без повышения. Это ориентир для текущей тренировки, не подтверждённая история рабочих подходов.";
       return finish();
     }
-    if (result.trial.weight!==null &&
-      (w<result.trial.weight*0.7 || reps<Math.max(4,Math.floor(result.trial.reps*0.65)))) {
-      result.work.reason="Проба слишком лёгкая или короткая для оценки; нужен промежуточный проверочный подход.";
+    if (base === null || w > base) {
+      result.work.reason =
+        "Нет достоверного ориентира рабочего веса. Проверь нагрузку дополнительным подходом или выбери её вручную.";
+      return finish();
+    }
+    if (
+      result.trial.weight !== null &&
+      (w < result.trial.weight * 0.7 ||
+        reps < Math.max(4, Math.floor(result.trial.reps * 0.65)))
+    ) {
+      result.work.reason =
+        "Проба слишком лёгкая или короткая для оценки; нужен промежуточный проверочный подход.";
       return finish();
     }
     if (!recent) {
-      result.work.reason="Нет надёжной истории: подбери посильную нагрузку дополнительной пробой, без автоматического повышения.";
+      result.work.reason =
+        "Нет надёжной истории: подбери посильную нагрузку дополнительной пробой, без автоматического повышения.";
       return finish();
     }
     const approved = window.SessionProgression?.latestTarget(exerciseId);
-    if (effort<=3 && approved && approved.unit===x.unit && approved.equipment===x.equipment) {
-      result.work.weight=approved.weight;
-      result.work.reason="Проба "+w+" кг × "+reps+" комфортная; использована подтверждённая цель из последней тренировки.";
-      result.work.confidence="умеренная";
+    if (
+      effort <= 3 &&
+      approved &&
+      approved.unit === x.unit &&
+      approved.equipment === x.equipment
+    ) {
+      result.work.weight = approved.weight;
+      result.work.reason =
+        "Проба " +
+        w +
+        " кг × " +
+        reps +
+        " комфортная; использована подтверждённая цель из последней тренировки.";
+      result.work.confidence = "умеренная";
       return finish();
     }
-    const factor=effort<=3 ? 1 : effort===4 ? 0.9 : 0.8;
-    const ceiling = effort >= 5 ? Math.min(base*factor,w*0.9) : base*factor;
+    const factor = effort <= 3 ? 1 : effort === 4 ? 0.9 : 0.8;
+    const ceiling =
+      effort >= 5 ? Math.min(base * factor, w * 0.9) : base * factor;
     // Select only loads observed on this equipment; never invent a 0.5 kg plate.
-    const known = [base,w,...(recent?.rows || []).filter(r=>r.d).map(r=>number(r.w))]
-      .filter(value=>Number.isFinite(value) && value>0 && value<=ceiling);
+    const known = [
+      base,
+      w,
+      ...(recent?.rows || []).filter((r) => r.d).map((r) => number(r.w)),
+    ].filter(
+      (value) => Number.isFinite(value) && value > 0 && value <= ceiling,
+    );
     const target = known.length ? Math.max(...known) : null;
-    if (target===null) {
-      result.work.reason="Проба тяжёлая. Уменьши вес на доступный шаг оборудования; надёжный меньший вес неизвестен.";
+    if (target === null) {
+      result.work.reason =
+        "Проба тяжёлая. Уменьши вес на доступный шаг оборудования; надёжный меньший вес неизвестен.";
       return finish();
     }
-    result.work.weight=target;
-    result.work.confidence=reliable.weight===null ? "низкая: неоднородная история" : "умеренная";
-    result.work.reason="Проба "+w+" кг × "+reps+", усилие "+effort+
-      "/6. "+(effort<=3 ? "Предложено удержать прежнюю нагрузку." :
-        "Проба была напряжённой, рабочий ориентир снижен.")+
+    result.work.weight = target;
+    result.work.confidence =
+      reliable.weight === null ? "низкая: неоднородная история" : "умеренная";
+    result.work.reason =
+      "Проба " +
+      w +
+      " кг × " +
+      reps +
+      ", усилие " +
+      effort +
+      "/6. " +
+      (effort <= 3
+        ? "Предложено удержать прежнюю нагрузку."
+        : "Проба была напряжённой, рабочий ориентир снижен.") +
       " Проверь доступные шаги оборудования и технику; повышение не автоматическое.";
     return finish();
   }
   function apply(state, result, kind) {
     if (kind === "trial") {
-      if (state.rows[0].d || result.trial.weight === null) return false;
-      Object.assign(state.rows[0], {
+      if (DDXStore.trialRow(state)?.d || result.trial.weight === null)
+        return false;
+      Object.assign(DDXStore.trialRow(state), {
         w: String(result.trial.weight),
         r: String(result.trial.reps),
         e: 0,
@@ -139,7 +262,8 @@
       if (result.work.weight === null) return false;
       state.rows.forEach((row, i) => {
         if (
-          i > 0 &&
+          DDXStore.rowType(row, i) === "working" &&
+          !row.skipped &&
           !row.d &&
           !row.manualWeight &&
           !(
@@ -147,8 +271,10 @@
             row.w !== "" &&
             number(row.w) !== state.weightApplication.weight
           )
-        )
+        ) {
           row.w = String(result.work.weight);
+          row.weightSource = "trial";
+        }
       });
     }
     state.calibration ??= {};

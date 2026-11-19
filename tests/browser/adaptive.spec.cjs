@@ -19,3 +19,5 @@ test('18-set example archives once, protects results, restores offline and progr
  await page.goto('legs.html');expect(await page.evaluate(()=>S.ex.squat.rows[1].w)).toBe('40');expect(await page.evaluate(()=>S.ex.squat.rows[1].r)).toBe('8');expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
 });
 test('compensation preview creates no fictional history and starts as one custom session',async({page})=>{await page.goto('custom.html?compensate=1');await page.getByText('Приседания со штангой',{exact:true}).click();await page.getByRole('button',{name:'Предложить план',exact:true}).click();await expect(page.locator('.plan-panel')).toContainText('Итого 18');await page.getByRole('button',{name:'Добавить предложенный план',exact:true}).click();await expect(page.locator('.plan-panel')).toContainText('18 рабочих подходов');expect(await page.evaluate(()=>DDXStore.history().length)).toBe(0);});
+
+require('./legacy-trials.cjs')(test);

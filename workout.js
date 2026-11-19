@@ -28,11 +28,7 @@ if (loaded) {
     loaded = DDXStore.migrateState(loaded);
     for (const e of EX) {
       const st = loaded.ex[e.id];
-      if (
-        st &&
-        !loaded.cards &&
-        (st.rows.length !== e.rows.length || st.alt >= (e.alts || []).length)
-      )
+      if (st && !loaded.cards && st.alt >= (e.alts || []).length)
         throw Error("Несовместимая карточка");
     }
   } catch (error) {
@@ -54,12 +50,21 @@ EX.forEach((e) => {
   }
   if (!S.ex[e.id])
     S.ex[e.id] = {
-      rows: e.rows.map((r) => ({
-        w: e.type === "sets" ? "" : r.w === undefined ? "" : String(r.w),
-        r: r.r === undefined ? "" : String(r.r),
-        e: 0,
-        d: false,
-      })),
+      rows: e.rows
+        .filter(
+          (r, i) =>
+            e.type !== "sets" ||
+            i > 0 ||
+            !!window.ExerciseEstimator?.preferences()[DDXCatalog.identity(e)]
+              ?.trialEnabled,
+        )
+        .map((r) => ({
+          type: e.type === "task" ? "task" : r.wu ? "trial" : "working",
+          w: e.type === "sets" ? "" : r.w === undefined ? "" : String(r.w),
+          r: r.r === undefined ? "" : String(r.r),
+          e: 0,
+          d: false,
+        })),
       n: "",
       t: [],
       skip: false,
@@ -69,18 +74,30 @@ EX.forEach((e) => {
       side: !!e.sideDefault,
     };
 });
+for (const e of EX) {
+  const st = S.ex[e.id];
+  if (e.type === "task") st.rows.forEach((r) => (r.type = "task"));
+  st.trialEnabled ??= st.rows.some((r) => r.type === "trial");
+}
 // Fill a suggested probe once when its field is empty. Never overwrite drafts,
 // completed trials, or a field intentionally cleared by the user.
 function suggestTrialDefault(e) {
   if (e.type !== "sets" || S.end) return false;
-  const st = S.ex[e.id], row = st?.rows?.[0];
+  const st = S.ex[e.id],
+    row = st?.trialEnabled ? DDXStore.trialRow(st) : null;
   if (!row || row.d || row.w !== "" || st.trialManuallyCleared) return false;
   const replacement = repName(e);
   const id = DDXCatalog.identity({
-    id: e.id, exerciseId: replacement ? null : e.exerciseId, replacement,
+    id: e.id,
+    exerciseId: replacement ? null : e.exerciseId,
+    replacement,
   });
   let history;
-  try { history = DDXStore.history(); } catch { return false; }
+  try {
+    history = DDXStore.history();
+  } catch {
+    return false;
+  }
   const proposal = WeightCalibration.evaluate(id, st, history).trial;
   if (proposal.weight === null) return false;
   row.w = String(proposal.weight);
@@ -92,8 +109,13 @@ for (const e of EX) if (suggestTrialDefault(e)) autoTrialChanged = true;
 // Future targets apply only to new, empty exercise cards, never to drafts.
 let nextTargetChanged = false;
 for (const e of EX) {
-  if (!S.end && freshExerciseIds.has(e.id) && e.type === "sets" &&
-      SessionProgression.prefill(e,S.ex[e.id])) nextTargetChanged = true;
+  if (
+    !S.end &&
+    freshExerciseIds.has(e.id) &&
+    e.type === "sets" &&
+    SessionProgression.prefill(e, S.ex[e.id])
+  )
+    nextTargetChanged = true;
 }
 function save() {
   if (resetting) return false;
@@ -104,7 +126,10 @@ function save() {
     const value = JSON.stringify(S);
     localStorage.setItem(KEY, value);
     persisted = value;
-    queueMicrotask(refreshWeightRecommendations);
+    queueMicrotask(() => {
+      refreshWeightRecommendations();
+      window.refreshWorkoutNavigation?.();
+    });
     const status = document.getElementById("saveStatus");
     if (status)
       status.textContent =
@@ -132,7 +157,7 @@ const EFF = [
   "тяжело",
   "кое как",
 ];
-const isWu = (e, i) => !!(e.rows[i] && e.rows[i].wu);
+const isWu = (e, i) => DDXStore.rowType(S.ex[e.id].rows[i], i) === "trial";
 
 let AC = null,
   lastTick = -1,
@@ -257,7 +282,7 @@ EX.forEach((e) => {
   const d = document.createElement("div");
   d.className = "ex";
   d.id = "ex-" + e.id;
-  d.innerHTML = `<div class="ex-head"><div><h3>${e.title}</h3><div class="meta">${e.type === "sets" ? "Пробный и рабочий вес — в блоке калибровки · отдых " + e.rest + "с" : e.meta}</div><div class="rp" id="rp-${e.id}"></div></div><div class="status" id="st-${e.id}"></div></div>
+  d.innerHTML = `<div class="ex-head"><div><h3>${e.title}</h3><div class="meta">${e.type === "sets" ? "Рабочие подходы · отдых " + e.rest + "с" : e.meta}</div><div class="rp" id="rp-${e.id}"></div></div><div class="status" id="st-${e.id}"></div></div>
   <div class="ex-body">${e.type === "sets" ? "" : `<div class="last">${e.last}</div>`}<div class="tech">${e.tech}</div>
   ${e.type === "sets" ? `<div class="cal" id="cal-${e.id}"></div>` : ""}
   <div id="rows-${e.id}"></div>
@@ -272,12 +297,23 @@ EX.forEach((e) => {
   <textarea id="n-${e.id}" placeholder="заметки"></textarea>
   <div class="ctl"><button id="sk-${e.id}">ПРОПУСТИТЬ УПРАЖНЕНИЕ</button></div></div>`;
   list.appendChild(d);
+  const secondary = document.createElement("details");
+  secondary.className = "exercise-options";
+  const summary = document.createElement("summary");
+  summary.textContent = "Настройки упражнения";
+  secondary.append(summary);
+  for (const el of d.querySelectorAll(
+    ".tech,.alt,.ex-body>.quick,.ex-body>textarea,.ctl",
+  ))
+    secondary.append(el);
+  d.querySelector(".ex-body").append(secondary);
   catalogControls(e, d);
   const head = d.querySelector(".ex-head");
   head.tabIndex = 0;
   head.setAttribute("role", "button");
   head.setAttribute("aria-expanded", "false");
   head.onclick = () => {
+    window.activeWorkoutExercise = e.id;
     d.classList.toggle("open");
     head.setAttribute("aria-expanded", d.classList.contains("open"));
   };
@@ -403,6 +439,7 @@ function renderRows(e) {
     box.appendChild(h);
   }
   st.rows.forEach((r, i) => {
+    if (isWu(e, i) && !st.trialEnabled) return;
     const d = document.createElement("div");
     d.className = "row" + (r.d ? " done" : "") + (isWu(e, i) ? " trial" : "");
     if (e.type === "task") {
@@ -422,7 +459,9 @@ function renderRows(e) {
     } else {
       const n = document.createElement("span");
       n.className = "n" + (isWu(e, i) ? " wu" : "");
-      n.textContent = isWu(e, i) ? "проба" : i;
+      n.textContent = isWu(e, i)
+        ? "проба"
+        : DDXStore.plannedRows(st).indexOf(r) + 1;
       d.appendChild(n);
       const w = document.createElement("input");
       w.className = "iw";
@@ -434,8 +473,11 @@ function renderRows(e) {
       w.disabled = r.d;
       w.oninput = () => {
         r.w = w.value;
-        if (i === 0) st.trialManuallyCleared = w.value.trim() === "";
-        if (i > 0) r.manualWeight = true;
+        if (isWu(e, i)) st.trialManuallyCleared = w.value.trim() === "";
+        if (!isWu(e, i)) {
+          r.manualWeight = true;
+          r.weightSource = "user";
+        }
         save();
         if (isWu(e, i)) renderCal(e);
       };
@@ -458,7 +500,13 @@ function renderRows(e) {
       ef.className = "eff e" + r.e;
       ef.textContent = EFF[r.e];
       ef.onclick = () => {
-        if (r.d && i > 0 && r.e && !confirm("Исправить усилие выполненного подхода?")) return;
+        if (
+          r.d &&
+          !isWu(e, i) &&
+          r.e &&
+          !confirm("Исправить усилие выполненного подхода?")
+        )
+          return;
         r.e = (r.e + 1) % EFF.length;
         ef.className = "eff e" + r.e;
         ef.textContent = EFF[r.e];
@@ -479,10 +527,21 @@ function renderRows(e) {
 }
 function refresh(e) {
   const st = S.ex[e.id],
-    n = st.rows.filter((r) => r.d).length;
-  $("st-" + e.id).textContent = st.skip ? "ПРОП." : n + "/" + st.rows.length;
+    n = (e.type === "sets" ? DDXStore.plannedRows(st) : st.rows).filter(
+      (r) => r.d && !r.skipped,
+    ).length;
+  $("st-" + e.id).textContent = st.skip
+    ? "ПРОП."
+    : n +
+      "/" +
+      (e.type === "sets" ? DDXStore.plannedRows(st).length : st.rows.length);
   const c = $("ex-" + e.id);
-  c.classList.toggle("done", !st.skip && n === st.rows.length);
+  c.classList.toggle(
+    "done",
+    !st.skip &&
+      n ===
+        (e.type === "sets" ? DDXStore.plannedRows(st).length : st.rows.length),
+  );
   c.classList.toggle("skipped", st.skip);
 }
 function updBar() {
@@ -491,8 +550,9 @@ function updBar() {
   EX.forEach((e) => {
     const st = S.ex[e.id];
     if (st.skip) return;
-    t += st.rows.length;
-    d += st.rows.filter((r) => r.d).length;
+    const rows = e.type === "sets" ? DDXStore.plannedRows(st) : st.rows;
+    t += rows.length;
+    d += rows.filter((r) => r.d || r.skipped).length;
   });
   $("pfill").style.width = (t ? (d / t) * 100 : 0) + "%";
 }
@@ -507,7 +567,12 @@ function nextEx(e) {
   $("ex-" + e.id).classList.remove("open");
   for (let i = EX.indexOf(e) + 1; i < EX.length; i++) {
     const st = S.ex[EX[i].id];
-    if (!st.skip && !st.rows.every((r) => r.d)) {
+    if (
+      !st.skip &&
+      !st.rows
+        .filter((r, i) => DDXStore.rowType(r, i) !== "trial" || st.trialEnabled)
+        .every((r) => r.d || r.skipped)
+    ) {
       $("ex-" + EX[i].id).classList.add("open");
       return;
     }
@@ -520,6 +585,10 @@ function toggleDone(e, i) {
   ensureStart();
   const st = S.ex[e.id],
     row = st.rows[i];
+  if (row.skipped) {
+    toast("Сначала верни пропущенный подход");
+    return;
+  }
   if (
     !row.d &&
     e.type === "sets" &&
@@ -531,10 +600,13 @@ function toggleDone(e, i) {
     toast("Введи вес от 0 и целое число повторений больше 0");
     return;
   }
-  if (row.d && !confirm("Разблокировать выполненный подход для исправления?")) return;
+  if (row.d && !confirm("Разблокировать выполненный подход для исправления?"))
+    return;
   row.d = !row.d;
   $("ac-" + e.id).disabled = st.rows.some((r) => r.d);
-  const all = st.rows.every((r) => r.d);
+  const all = st.rows
+    .filter((r, i) => !isWu(e, i) || st.trialEnabled)
+    .every((r) => r.d || r.skipped);
   if (row.d && e.type === "sets") {
     if (isWu(e, i)) {
       renderCal(e);
@@ -562,7 +634,10 @@ function toggleDone(e, i) {
 }
 function skipEx(e) {
   const st = S.ex[e.id];
-  if (st.rows.some(r=>r.d)) { toast("Выполненные подходы защищены"); return; }
+  if (st.rows.some((r) => r.d)) {
+    toast("Выполненные подходы защищены");
+    return;
+  }
   st.skip = !st.skip;
   save();
   refresh(e);
@@ -623,6 +698,7 @@ setInterval(tick, 250);
 // ===== REPORT =====
 function fmtRow(e, r, i) {
   if (e.type === "task") return e.rows[i].label;
+  if (r.skipped) return "подход пропущен";
   let s = (r.w !== "" && r.w !== undefined ? r.w + "×" : "") + (r.r || "?");
   if (isWu(e, i)) s += " (пробный)";
   if (r.e) s += " " + EFF[r.e];
@@ -640,6 +716,7 @@ function stats() {
     st.rows.forEach((r, i) => {
       if (
         r.d &&
+        !r.skipped &&
         !isWu(e, i) &&
         DDXStore.num(r.w) >= 0 &&
         DDXStore.num(r.r) > 0 &&
@@ -673,7 +750,9 @@ function buildReport() {
       L.push(`${title}: пропущено`);
       return;
     }
-    const done = st.rows.map((r, i) => ({ r, i })).filter((o) => o.r.d);
+    const done = st.rows
+      .map((r, i) => ({ r, i }))
+      .filter((o) => o.r.d || o.r.skipped);
     let l =
       `${title}: ` +
       (done.length
@@ -738,7 +817,12 @@ function archiveSession() {
         side: !!S.ex[e.id].side,
         tags: S.ex[e.id].t,
         why: S.ex[e.id].why,
-        rows: S.ex[e.id].rows.map((r) => ({ ...r })),
+        trialEnabled: S.ex[e.id].trialEnabled,
+        workingSource: S.ex[e.id].workingSource,
+        rows: S.ex[e.id].rows.map((r, i) => ({
+          ...r,
+          type: DDXStore.rowType(r, i),
+        })),
       })),
     };
     const history = DDXStore.history();
@@ -762,39 +846,66 @@ function showNextPlan(record, restoring) {
   heading.textContent = "ТРЕНИРОВКА СОХРАНЕНА · ПЛАН ПРОГРЕССИИ";
   root.append(heading);
   if (!record) {
-    root.append(document.createTextNode(
-      "Архив не подтверждён. Не закрывай приложение, пока запись не сохранена."));
+    root.append(
+      document.createTextNode(
+        "Архив не подтверждён. Не закрывай приложение, пока запись не сохранена.",
+      ),
+    );
     return;
   }
   let history;
-  try { history = DDXStore.history(); }
-  catch { root.append(document.createTextNode("История недоступна для расчёта.")); return; }
+  try {
+    history = DDXStore.history();
+  } catch {
+    root.append(document.createTextNode("История недоступна для расчёта."));
+    return;
+  }
   const goals = SessionProgression.evaluate(record, history);
   const existingTargets = SessionProgression.read();
-  const alreadyStored = Object.values(existingTargets)
-    .some(target => target.sourceSessionId === record.id);
+  const alreadyStored = Object.values(existingTargets).some(
+    (target) => target.sourceSessionId === record.id,
+  );
   // Older completed sessions (before this feature was installed) also get
   // their goals on first reopening, but never replace targets from newer sessions.
-  const mostRecent = history.every(item => item.id === record.id || item.start <= record.start);
+  const mostRecent = history.every(
+    (item) => item.id === record.id || item.start <= record.start,
+  );
   if (!restoring || (mostRecent && !alreadyStored)) {
-    try { SessionProgression.store(record, goals); }
-    catch { root.append(document.createTextNode(
-      "История сохранена, но цели следующего занятия не записаны. Экспортируй резервную копию.")); }
+    try {
+      SessionProgression.store(record, goals);
+    } catch {
+      root.append(
+        document.createTextNode(
+          "История сохранена, но цели следующего занятия не записаны. Экспортируй резервную копию.",
+        ),
+      );
+    }
   }
   const subtitle = document.createElement("p");
-  subtitle.textContent = "Результат уже в истории. Безопасные цели с тем же весом будут подготовлены в новой тренировке. Повышение веса — только после твоего подтверждения.";
+  subtitle.textContent =
+    "Результат уже в истории. Безопасные цели с тем же весом будут подготовлены в новой тренировке. Повышение веса — только после твоего подтверждения.";
   root.append(subtitle);
   const analysis = WorkoutAnalysis.analyzeWorkout(record, history);
   const review = document.createElement("details");
   const reviewTitle = document.createElement("summary");
   reviewTitle.textContent = "Локальный разбор · " + analysis.summary;
   review.append(reviewTitle);
-  for (const text of [...analysis.good,...analysis.attention,...analysis.next]) {
-    const p = document.createElement("p"); p.textContent = text; review.append(p);
+  for (const text of [
+    ...analysis.good,
+    ...analysis.attention,
+    ...analysis.next,
+  ]) {
+    const p = document.createElement("p");
+    p.textContent = text;
+    review.append(p);
   }
   root.append(review);
   if (!goals.length) {
-    root.append(document.createTextNode("Нет надёжных данных для автоматической прогрессии. Следующий вес выбирается вручную."));
+    root.append(
+      document.createTextNode(
+        "Нет надёжных данных для автоматической прогрессии. Следующий вес выбирается вручную.",
+      ),
+    );
     return;
   }
   const saved = SessionProgression.read();
@@ -806,32 +917,61 @@ function showNextPlan(record, restoring) {
     const info = document.createElement("p");
     let status = goal.reason;
     if (goal.kind === "reps")
-      status = goal.proposedWeight + " кг × " + goal.proposedReps + " · " + status;
+      status =
+        goal.proposedWeight + " кг × " + goal.proposedReps + " · " + status;
     else if (goal.kind === "ceiling" && goal.proposedWeight !== null)
-      status = "Возможный следующий вес: " + goal.proposedWeight + " кг × " +
-        goal.proposedReps + ". " + status;
+      status =
+        "Возможный следующий вес: " +
+        goal.proposedWeight +
+        " кг × " +
+        goal.proposedReps +
+        ". " +
+        status;
     info.textContent = status;
-    line.append(title,info);
+    line.append(title, info);
     if (goal.kind === "ceiling" && goal.proposedWeight !== null) {
       const approve = document.createElement("button");
       const isApproved = () =>
         saved[goal.exerciseId]?.sourceSessionId === record.id &&
         saved[goal.exerciseId]?.weight === goal.proposedWeight;
-      approve.textContent = isApproved() ? "ПОВЫШЕНИЕ ПОДТВЕРЖДЕНО" : "ОДОБРИТЬ ПОВЫШЕНИЕ ДЛЯ СЛЕДУЮЩЕЙ";
+      approve.textContent = isApproved()
+        ? "ПОВЫШЕНИЕ ПОДТВЕРЖДЕНО"
+        : "ОДОБРИТЬ ПОВЫШЕНИЕ ДЛЯ СЛЕДУЮЩЕЙ";
       approve.disabled = restoring && !record;
       approve.onclick = () => {
-        if (!confirm("Подтвердить повышение до " + goal.proposedWeight +
-          " кг для следующей тренировки? Только если есть такой шаг оборудования.")) return;
+        if (
+          !confirm(
+            "Подтвердить повышение до " +
+              goal.proposedWeight +
+              " кг для следующей тренировки? Только если есть такой шаг оборудования.",
+          )
+        )
+          return;
         goal.approved = true;
         try {
           SessionProgression.store(record, goals);
           const logKey = "ddx_progression_approvals_v1";
           const log = JSON.parse(localStorage.getItem(logKey) || "[]");
-          if (!Array.isArray(log)) throw Error("Некорректный журнал подтверждений");
-          const entry = {sourceSessionId:record.id,exerciseId:goal.exerciseId,
-            weight:goal.proposedWeight,reps:goal.proposedReps,confirmedAt:Date.now()};
-          localStorage.setItem(logKey, JSON.stringify([
-            ...log.filter(x=>x.sourceSessionId!==record.id || x.exerciseId!==goal.exerciseId),entry]));
+          if (!Array.isArray(log))
+            throw Error("Некорректный журнал подтверждений");
+          const entry = {
+            sourceSessionId: record.id,
+            exerciseId: goal.exerciseId,
+            weight: goal.proposedWeight,
+            reps: goal.proposedReps,
+            confirmedAt: Date.now(),
+          };
+          localStorage.setItem(
+            logKey,
+            JSON.stringify([
+              ...log.filter(
+                (x) =>
+                  x.sourceSessionId !== record.id ||
+                  x.exerciseId !== goal.exerciseId,
+              ),
+              entry,
+            ]),
+          );
           approve.textContent = "ПОВЫШЕНИЕ ПОДТВЕРЖДЕНО";
         } catch {
           alert("Не удалось сохранить цель. Экспортируй резервную копию.");
@@ -874,7 +1014,8 @@ function finish(restoring = false) {
   let archiveRecord = null;
   try {
     const archiveId = KEY + "_" + S.start;
-    archiveRecord = DDXStore.history().find(item => item.id === archiveId) || null;
+    archiveRecord =
+      DDXStore.history().find((item) => item.id === archiveId) || null;
   } catch {}
   showNextPlan(archiveRecord, restoring);
   $("scrMain").classList.add("hidden");
@@ -931,7 +1072,13 @@ if (new URLSearchParams(location.search).has("new")) {
   const key = "ddx_" + KIND + "_v4_" + Date.now();
   localStorage.setItem(
     key,
-    JSON.stringify({ start: null, updatedAt: Date.now(), end: null, rest: null, ex: {} }),
+    JSON.stringify({
+      start: null,
+      updatedAt: Date.now(),
+      end: null,
+      rest: null,
+      ex: {},
+    }),
   );
   location.replace(KIND + ".html");
 }

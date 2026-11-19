@@ -35,7 +35,7 @@ test("replacement persists, archives canonical identity, exports and leaves next
     .locator("#ex-dbbench")
     .getByRole("button", { name: "Заменить упражнение", exact: true })
     .click();
-  await expect(page.locator("dialog")).toHaveCount(0);
+  await expect(page.locator("dialog[open]")).toHaveCount(0);
   await page.evaluate(() => finish());
   expect(
     await page.evaluate(
@@ -86,11 +86,9 @@ test("extra exercise, duplicate protection, order, completed deletion protection
   await card.locator(".ex-head").click();
   await card.locator(".plan-editor summary").click();
   await card.getByRole("button", { name: "Переместить выше" }).click();
-  await card.locator(".ex-head").click();
   await expect(card.locator("button.ok")).toHaveCount(3);
   await card.locator("input.iw").nth(1).fill("41");
   await card.locator("button.ok").nth(1).click();
-  await card.locator(".plan-editor summary").click();
   await card
     .getByRole("button", { name: "Удалить упражнение" })
     .click();
@@ -136,5 +134,7 @@ test("offline catalogue search, uncertainty and 320px keyboard dialog", async ({
     ),
   ).toBe(true);
   await page.keyboard.press("Escape");
-  await expect(page.locator("dialog")).toHaveCount(0);
+  await expect(page.locator("dialog[open]")).toHaveCount(0);
 });
+
+require('./legacy-trials.cjs')(test);
