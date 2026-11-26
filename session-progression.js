@@ -239,8 +239,11 @@
         history: h,
         targetReps: state.repMin,
       });
-      if (estimate.requiresCalibration) return false;
-      if (!target)
+      // A valid confirmed goal must not be blocked by an estimator hint.
+      // A low-confidence estimate is a visible, editable starting point,
+      // never an approved progression or personal best.
+      if (!target && Number.isFinite(estimate.estimatedWeight) &&
+          estimate.estimatedWeight > 0)
         target = {
           weight: estimate.estimatedWeight,
           reps: state.repMin || DDXCatalog.get(id)?.reps,
@@ -268,7 +271,8 @@
           : estimate?.confidence === "high"
             ? "confirmed"
             : "estimate";
-        r.r = String(target.reps);
+        if (!r.manualReps && !r.d && (!r.r || Number(r.r) === Number(catalog.reps)))
+          r.r = String(target.reps);
         changed = true;
       }
     }
@@ -276,8 +280,8 @@
       state.workingSource = {
         exerciseId: id,
         weight: target.weight,
-        source: estimate?.reason || "Цель из истории",
-        confidence: estimate?.confidence || "high",
+        source: target.approvedAt ? "Подтверждённая цель" : estimate?.reason || "Цель из истории",
+        confidence: target.approvedAt ? "high" : estimate?.confidence || "high",
       };
     return changed;
   }

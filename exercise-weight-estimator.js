@@ -46,12 +46,35 @@
       };
     const recent = DDXCatalog.reliable(exerciseId, {}, history);
     if (recent.last) {
-      if (recent.weight === null)
+      if (recent.weight === null) {
+        // A hard or incomplete session is still evidence of the load actually
+        // used; it is NOT proof that the load should be increased.
+        const e = recent.last.e;
+        const observed = DDXStore.workRows(e)
+          .filter((r) => r.d && !r.skipped &&
+            Number.isFinite(DDXStore.num(r.w)) && DDXStore.num(r.w) > 0 &&
+            Number.isFinite(DDXStore.num(r.r)) && DDXStore.num(r.r) > 0);
+        const hurt = /боль|болит|дискомфорт|чувствуется/i.test(
+          [e.notes, ...(e.tags || []), ...(e.why || [])].join(" "));
+        const compatible = !hurt && !e.skipped && !e.side &&
+          (!e.unit || e.unit === x.unit) &&
+          (!e.equipment || e.equipment === x.equipment);
+        const age = (now - recent.last.s.start) / 86400000;
+        if (compatible && observed.length && age >= 0 && age <= 60) {
+          return {
+            ...result, estimatedWeight: Math.min(...observed.map(r => DDXStore.num(r.w))),
+            confidence: "low", sourceExerciseIds: [exerciseId],
+            requiresCalibration: false,
+            reason: "Последний фактический рабочий вес (не подтверждён для повышения). " +
+              recent.reason + ". При тяжёлом усилии снизь нагрузку.",
+          };
+        }
         return {
           ...result,
           sourceExerciseIds: [exerciseId],
           reason: recent.reason,
         };
+      }
       const age = (now - recent.last.s.start) / 86400000;
       const compatibleReps = !targetReps || targetReps <= recent.reps + 1;
       if (age < 0 || age > 60 || !compatibleReps)
@@ -123,6 +146,35 @@
         result.range = [Math.min(...observed), Math.max(...observed)];
         result.reason +=
           " Показан диапазон наблюдавшихся весов гантели, а не прогноз рабочего веса. Нужна проверка.";
+      }
+    }
+    // For an unseen movement, only offer a numeric *starting experiment*
+    // if the same muscle group, load unit and broad equipment type have
+    // recorded comparable quantities. No barbell/dumbbell/bodyweight conversion.
+    // Machines with different leverage are NOT equivalent: the 50% factor is
+    // intentionally conservative and labelled low-confidence, not a prediction.
+    const comparable = DDXCatalog.items
+      .filter(v => v.id !== x.id && v.group === x.group &&
+        v.unit === x.unit && v.equipmentType === x.equipmentType)
+      .map(v => ({ x:v, r:DDXCatalog.reliable(v.id, {}, history) }))
+      .filter(v => v.r.last && v.r.weight !== null &&
+        now >= v.r.last.s.start &&
+        now - v.r.last.s.start < 60 * 86400000);
+    if (comparable.length && !x.unit.includes("противовес")) {
+      const values = comparable.map(v => v.r.weight).filter(w => w > 0);
+      if (values.length) {
+        const minimum = Math.min(...values);
+        const ratio = x.equipmentType === "гантели" ? 0.65 : 0.5;
+        const tentative = Math.max(1, Math.floor(minimum * ratio));
+        return {
+          ...result, estimatedWeight:tentative,
+          range:[tentative, minimum],
+          sourceExerciseIds:comparable.map(v => v.x.id),
+          confidence:"low", requiresCalibration:false,
+          reason:"ПРОБНЫЙ ОРИЕНТИР по другой нагрузке той же группы ("+
+            comparable.map(v => v.x.name).join(", ")+
+            "). Вес тренажёра может существенно отличаться; начни осторожно и откалибруй.",
+        };
       }
     }
     return result;
