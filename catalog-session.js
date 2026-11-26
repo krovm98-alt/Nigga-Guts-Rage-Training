@@ -374,7 +374,8 @@ function renderWeightRecommendation(e, d) {
         "p",
         `Наблюдавшиеся веса близких упражнений: ${estimate.range.join("–")} кг · низкая достоверность, требуется проба.`,
       );
-    if (estimate.requiresCalibration) {
+    if (estimate.requiresCalibration || estimate.confidence === "low" ||
+        st.workingSource?.confidence === "low") {
       const b = document.createElement("button");
       b.textContent = "Проверить вес пробным подходом";
       b.onclick = () => toggleTrial(e, true);
