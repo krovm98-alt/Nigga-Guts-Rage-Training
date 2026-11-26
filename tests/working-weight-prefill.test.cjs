@@ -17,7 +17,7 @@ function setup() {
 function history(c,id,weight,effort=4) {
   const x=c.DDXCatalog.get(id),r={type:"working",w:String(weight),r:"8",e:effort,d:true};
   return [{id:"h1",kind:"push",start:Date.now()-86400000,end:Date.now()-86000000,
-    exercises:[{id,exerciseId:id,unit:x.unit,equipment:x.equipment,rows:[r,{...r},{...r}]}]}];
+    exercises:[{id,exerciseId:id,name:x.name,unit:x.unit,equipment:x.equipment,rows:[r,{...r},{...r}]}]}];
 }
 test("hard last set is a visible observed working load, never a progression approval",()=>{
   const {c}=setup(),h=history(c,"pec_deck",54,5);
