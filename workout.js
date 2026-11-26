@@ -43,11 +43,7 @@ if (loaded) {
 let S = loaded || { start: null, end: null, rest: null, ex: {} };
 if (!S.ex) S.ex = {};
 initCatalogSession(S);
-const freshExerciseIds = new Set();
 EX.forEach((e) => {
-  if (!S.ex[e.id]) {
-    freshExerciseIds.add(e.id);
-  }
   if (!S.ex[e.id])
     S.ex[e.id] = {
       rows: e.rows
@@ -106,15 +102,13 @@ function suggestTrialDefault(e) {
 }
 let autoTrialChanged = false;
 for (const e of EX) if (suggestTrialDefault(e)) autoTrialChanged = true;
-// Future targets apply only to new, empty exercise cards, never to drafts.
+// Refresh only empty, untouched and unfinished working rows, including
+// saved drafts created before a target or a new estimator became available.
+// SessionProgression.prefill never overwrites manual weights or completed sets.
 let nextTargetChanged = false;
 for (const e of EX) {
-  if (
-    !S.end &&
-    freshExerciseIds.has(e.id) &&
-    e.type === "sets" &&
-    SessionProgression.prefill(e, S.ex[e.id])
-  )
+  if (!S.end && e.type === "sets" &&
+      SessionProgression.prefill(e, S.ex[e.id]))
     nextTargetChanged = true;
 }
 function save() {
