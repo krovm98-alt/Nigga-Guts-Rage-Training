@@ -1,4 +1,4 @@
-const CACHE = "guts-rage-v7-library-ux-2";
+const CACHE = "guts-rage-v8-weight-hints-1";
 const ASSETS = [
   "./exercise-weight-estimator.js",
   "./workout-navigation.js",
